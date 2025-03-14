@@ -136,6 +136,9 @@ const UIManager = (function() {
         // Get beast data and render statblock
         DataManager.getBeastById(beastId)
             .then(beast => {
+                console.log("Beast data loaded:", beast.name);
+                console.log("Ability scores:", beast.abilities);
+                
                 currentBeast = beast;
                 renderStatblock(beast);
                 
@@ -149,7 +152,7 @@ const UIManager = (function() {
             })
             .catch(error => {
                 console.error('Error getting beast:', error);
-                showError('Could not load beast data');
+                showError('Could not load beast data: ' + error);
             });
     }
     
@@ -176,248 +179,303 @@ const UIManager = (function() {
     }
     
     /**
+     * Parses an ability score string and extracts the score and modifier
+     * @param {string} scoreText - The ability score text (e.g., "19 (+4)")
+     * @returns {Object} Object with score and modifier properties
+     */
+    function parseAbilityScore(scoreText) {
+        // Check if the score text is valid
+        if (!scoreText || typeof scoreText !== 'string' || scoreText.trim() === '') {
+            console.warn('Invalid ability score, using default');
+            return { score: 10, mod: '+0' };
+        }
+        
+        // Try to extract the raw score (number before the space)
+        const scoreParts = scoreText.trim().split(' ');
+        const rawScore = parseInt(scoreParts[0]);
+        
+        // If we couldn't parse the score, use a default
+        if (isNaN(rawScore)) {
+            console.warn(`Could not parse score from: ${scoreText}`);
+            return { score: 10, mod: '+0' };
+        }
+        
+        // Extract the modifier (text in parentheses)
+        let modifier = '+0';
+        const modMatch = scoreText.match(/\(([+-]\d+)\)/);
+        if (modMatch) {
+            modifier = modMatch[1];
+        } else {
+            // Calculate modifier if not provided
+            const calculatedMod = Math.floor((rawScore - 10) / 2);
+            modifier = calculatedMod >= 0 ? `+${calculatedMod}` : `${calculatedMod}`;
+        }
+        
+        return { score: rawScore, mod: modifier };
+    }
+    
+    /**
      * Renders a statblock for a beast
      * @param {Object} beast - Beast object to render
      */
     function renderStatblock(beast) {
-        // Format ability score modifiers
-        function getAbilityModifier(score) {
-            const mod = Math.floor((parseInt(score) - 10) / 2);
-            return mod >= 0 ? `+${mod}` : mod.toString();
-        }
-        
-        const strMod = getAbilityModifier(beast.abilities.str);
-        const dexMod = getAbilityModifier(beast.abilities.dex);
-        const conMod = getAbilityModifier(beast.abilities.con);
-        const intMod = getAbilityModifier(beast.abilities.int);
-        const wisMod = getAbilityModifier(beast.abilities.wis);
-        const chaMod = getAbilityModifier(beast.abilities.cha);
-        
-        let html = `
-            <div class="statblock-container">
-                <h2 class="statblock-name">${beast.name}</h2>
-                <p class="statblock-subtitle">${beast.size} ${beast.type}${beast.subtype ? ` (${beast.subtype})` : ''}, ${beast.alignment}</p>
-                <div class="statblock-separator"></div>
-                
-                <div class="statblock-property">
-                    <span class="statblock-property-name">Armor Class</span>
-                    <span class="statblock-property-value"> ${beast.ac}</span>
-                </div>
-                <div class="statblock-property">
-                    <span class="statblock-property-name">Hit Points</span>
-                    <span class="statblock-property-value"> ${beast.hp}</span>
-                </div>
-                <div class="statblock-property">
-                    <span class="statblock-property-name">Speed</span>
-                    <span class="statblock-property-value"> ${beast.speed}</span>
-                </div>
-                
-                <div class="statblock-separator"></div>
-                
-                <div class="statblock-ability-scores">
-                    <div class="statblock-ability">
-                        <div class="statblock-ability-name">STR</div>
-                        <div class="statblock-ability-score">${beast.abilities.str}</div>
-                        <div class="statblock-ability-mod">(${strMod})</div>
-                    </div>
-                    <div class="statblock-ability">
-                        <div class="statblock-ability-name">DEX</div>
-                        <div class="statblock-ability-score">${beast.abilities.dex}</div>
-                        <div class="statblock-ability-mod">(${dexMod})</div>
-                    </div>
-                    <div class="statblock-ability">
-                        <div class="statblock-ability-name">CON</div>
-                        <div class="statblock-ability-score">${beast.abilities.con}</div>
-                        <div class="statblock-ability-mod">(${conMod})</div>
-                    </div>
-                    <div class="statblock-ability">
-                        <div class="statblock-ability-name">INT</div>
-                        <div class="statblock-ability-score">${beast.abilities.int}</div>
-                        <div class="statblock-ability-mod">(${intMod})</div>
-                    </div>
-                    <div class="statblock-ability">
-                        <div class="statblock-ability-name">WIS</div>
-                        <div class="statblock-ability-score">${beast.abilities.wis}</div>
-                        <div class="statblock-ability-mod">(${wisMod})</div>
-                    </div>
-                    <div class="statblock-ability">
-                        <div class="statblock-ability-name">CHA</div>
-                        <div class="statblock-ability-score">${beast.abilities.cha}</div>
-                        <div class="statblock-ability-mod">(${chaMod})</div>
-                    </div>
-                </div>
-                
-                <div class="statblock-separator"></div>
-        `;
-        
-        // Add skills if present
-        if (beast.skills) {
-            html += `
-                <div class="statblock-property">
-                    <span class="statblock-property-name">Skills</span>
-                    <span class="statblock-property-value"> ${beast.skills}</span>
-                </div>
-            `;
-        }
-        
-        // Add damage resistances if present
-        if (beast.damageResistances) {
-            html += `
-                <div class="statblock-property">
-                    <span class="statblock-property-name">Damage Resistances</span>
-                    <span class="statblock-property-value"> ${beast.damageResistances}</span>
-                </div>
-            `;
-        }
-        
-        // Add damage vulnerabilities if present
-        if (beast.damageVulnerabilities) {
-            html += `
-                <div class="statblock-property">
-                    <span class="statblock-property-name">Damage Vulnerabilities</span>
-                    <span class="statblock-property-value"> ${beast.damageVulnerabilities}</span>
-                </div>
-            `;
-        }
-        
-        // Add damage immunities if present
-        if (beast.damageImmunities) {
-            html += `
-                <div class="statblock-property">
-                    <span class="statblock-property-name">Damage Immunities</span>
-                    <span class="statblock-property-value"> ${beast.damageImmunities}</span>
-                </div>
-            `;
-        }
-        
-        // Add condition immunities if present
-        if (beast.conditionImmunities) {
-            html += `
-                <div class="statblock-property">
-                    <span class="statblock-property-name">Condition Immunities</span>
-                    <span class="statblock-property-value"> ${beast.conditionImmunities}</span>
-                </div>
-            `;
-        }
-        
-        // Add senses
-        html += `
-            <div class="statblock-property">
-                <span class="statblock-property-name">Senses</span>
-                <span class="statblock-property-value"> ${beast.senses}</span>
-            </div>
-        `;
-        
-        // Add languages
-        html += `
-            <div class="statblock-property">
-                <span class="statblock-property-name">Languages</span>
-                <span class="statblock-property-value"> ${beast.languages}</span>
-            </div>
-        `;
-        
-        // Add challenge rating
-        html += `
-            <div class="statblock-property">
-                <span class="statblock-property-name">Challenge</span>
-                <span class="statblock-property-value"> ${beast.cr} (${beast.xp})</span>
-            </div>
-        `;
-        
-        // Add environment
-        if (beast.environment) {
-            html += `
-                <div class="statblock-property">
-                    <span class="statblock-property-name">Environment</span>
-                    <span class="statblock-property-value"> ${beast.environment}</span>
-                </div>
-            `;
-        }
-        
-        // Add traits
-        if (beast.traits && beast.traits.length > 0) {
-            html += `<div class="statblock-separator"></div>`;
+        try {
+            // Ensure abilities object exists
+            if (!beast.abilities) {
+                beast.abilities = {
+                    str: "10 (+0)",
+                    dex: "10 (+0)",
+                    con: "10 (+0)",
+                    int: "10 (+0)",
+                    wis: "10 (+0)",
+                    cha: "10 (+0)"
+                };
+            }
             
-            beast.traits.forEach(trait => {
-                // Format text bounded by asterisks as italics
-                const formattedDesc = trait.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-                
+            // Parse ability scores
+            const strParsed = parseAbilityScore(beast.abilities.str);
+            const dexParsed = parseAbilityScore(beast.abilities.dex);
+            const conParsed = parseAbilityScore(beast.abilities.con);
+            const intParsed = parseAbilityScore(beast.abilities.int);
+            const wisParsed = parseAbilityScore(beast.abilities.wis);
+            const chaParsed = parseAbilityScore(beast.abilities.cha);
+            
+            console.log("Parsed ability scores:", {
+                str: strParsed,
+                dex: dexParsed,
+                con: conParsed,
+                int: intParsed,
+                wis: wisParsed,
+                cha: chaParsed
+            });
+            
+            let html = `
+                <div class="statblock-container">
+                    <h2 class="statblock-name">${beast.name}</h2>
+                    <p class="statblock-subtitle">${beast.size} ${beast.type}${beast.subtype ? ` (${beast.subtype})` : ''}, ${beast.alignment}</p>
+                    <div class="statblock-separator"></div>
+                    
+                    <div class="statblock-property">
+                        <span class="statblock-property-name">Armor Class</span>
+                        <span class="statblock-property-value"> ${beast.ac}</span>
+                    </div>
+                    <div class="statblock-property">
+                        <span class="statblock-property-name">Hit Points</span>
+                        <span class="statblock-property-value"> ${beast.hp}</span>
+                    </div>
+                    <div class="statblock-property">
+                        <span class="statblock-property-name">Speed</span>
+                        <span class="statblock-property-value"> ${beast.speed}</span>
+                    </div>
+                    
+                    <div class="statblock-separator"></div>
+                    
+                    <div class="statblock-ability-scores">
+                        <div class="statblock-ability">
+                            <div class="statblock-ability-name">STR</div>
+                            <div class="statblock-ability-score">${strParsed.score}</div>
+                            <div class="statblock-ability-mod">(${strParsed.mod})</div>
+                        </div>
+                        <div class="statblock-ability">
+                            <div class="statblock-ability-name">DEX</div>
+                            <div class="statblock-ability-score">${dexParsed.score}</div>
+                            <div class="statblock-ability-mod">(${dexParsed.mod})</div>
+                        </div>
+                        <div class="statblock-ability">
+                            <div class="statblock-ability-name">CON</div>
+                            <div class="statblock-ability-score">${conParsed.score}</div>
+                            <div class="statblock-ability-mod">(${conParsed.mod})</div>
+                        </div>
+                        <div class="statblock-ability">
+                            <div class="statblock-ability-name">INT</div>
+                            <div class="statblock-ability-score">${intParsed.score}</div>
+                            <div class="statblock-ability-mod">(${intParsed.mod})</div>
+                        </div>
+                        <div class="statblock-ability">
+                            <div class="statblock-ability-name">WIS</div>
+                            <div class="statblock-ability-score">${wisParsed.score}</div>
+                            <div class="statblock-ability-mod">(${wisParsed.mod})</div>
+                        </div>
+                        <div class="statblock-ability">
+                            <div class="statblock-ability-name">CHA</div>
+                            <div class="statblock-ability-score">${chaParsed.score}</div>
+                            <div class="statblock-ability-mod">(${chaParsed.mod})</div>
+                        </div>
+                    </div>
+                    
+                    <div class="statblock-separator"></div>
+            `;
+            
+            // Add skills if present
+            if (beast.skills) {
                 html += `
                     <div class="statblock-property">
-                        <div class="statblock-property-name">${trait.name}.</div>
-                        <div class="statblock-property-value">${formattedDesc}</div>
+                        <span class="statblock-property-name">Skills</span>
+                        <span class="statblock-property-value"> ${beast.skills}</span>
                     </div>
                 `;
-            });
-        }
-        
-        // Add actions
-        if (beast.actions && beast.actions.length > 0) {
+            }
+            
+            // Add damage resistances if present
+            if (beast.damageResistances) {
+                html += `
+                    <div class="statblock-property">
+                        <span class="statblock-property-name">Damage Resistances</span>
+                        <span class="statblock-property-value"> ${beast.damageResistances}</span>
+                    </div>
+                `;
+            }
+            
+            // Add damage vulnerabilities if present
+            if (beast.damageVulnerabilities) {
+                html += `
+                    <div class="statblock-property">
+                        <span class="statblock-property-name">Damage Vulnerabilities</span>
+                        <span class="statblock-property-value"> ${beast.damageVulnerabilities}</span>
+                    </div>
+                `;
+            }
+            
+            // Add damage immunities if present
+            if (beast.damageImmunities) {
+                html += `
+                    <div class="statblock-property">
+                        <span class="statblock-property-name">Damage Immunities</span>
+                        <span class="statblock-property-value"> ${beast.damageImmunities}</span>
+                    </div>
+                `;
+            }
+            
+            // Add condition immunities if present
+            if (beast.conditionImmunities) {
+                html += `
+                    <div class="statblock-property">
+                        <span class="statblock-property-name">Condition Immunities</span>
+                        <span class="statblock-property-value"> ${beast.conditionImmunities}</span>
+                    </div>
+                `;
+            }
+            
+            // Add senses
             html += `
-                <div class="statblock-separator"></div>
-                <div class="statblock-action-title">Actions</div>
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Senses</span>
+                    <span class="statblock-property-value"> ${beast.senses}</span>
+                </div>
             `;
             
-            beast.actions.forEach(action => {
-                // Format text bounded by asterisks as italics
-                const formattedDesc = action.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-                
-                html += `
-                    <div class="statblock-action">
-                        <div class="statblock-action-name">${action.name}.</div>
-                        <div>${formattedDesc}</div>
-                    </div>
-                `;
-            });
-        }
-        
-        // Add reactions
-        if (beast.reactions && beast.reactions.length > 0) {
+            // Add languages
             html += `
-                <div class="statblock-separator"></div>
-                <div class="statblock-action-title">Reactions</div>
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Languages</span>
+                    <span class="statblock-property-value"> ${beast.languages}</span>
+                </div>
             `;
             
-            beast.reactions.forEach(reaction => {
-                // Format text bounded by asterisks as italics
-                const formattedReactionDesc = reaction.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-                
-                html += `
-                    <div class="statblock-action">
-                        <div class="statblock-action-name">${reaction.name}.</div>
-                        <div>${formattedReactionDesc}</div>
-                    </div>
-                `;
-            });
-        }
-        
-        // Add legendary actions
-        if (beast.legendaryActions && beast.legendaryActions.length > 0) {
+            // Add challenge rating
             html += `
-                <div class="statblock-separator"></div>
-                <div class="statblock-action-title">Legendary Actions</div>
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Challenge</span>
+                    <span class="statblock-property-value"> ${beast.cr} (${beast.xp})</span>
+                </div>
             `;
             
-            beast.legendaryActions.forEach(legendaryAction => {
-                // Format text bounded by asterisks as italics
-                const formattedLegendaryDesc = legendaryAction.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-                
+            // Add environment
+            if (beast.environment) {
                 html += `
-                    <div class="statblock-action">
-                        <div class="statblock-action-name">${legendaryAction.name}.</div>
-                        <div>${formattedLegendaryDesc}</div>
+                    <div class="statblock-property">
+                        <span class="statblock-property-name">Environment</span>
+                        <span class="statblock-property-value"> ${beast.environment}</span>
                     </div>
                 `;
-            });
+            }
+            
+            // Add traits
+            if (beast.traits && beast.traits.length > 0) {
+                html += `<div class="statblock-separator"></div>`;
+                
+                beast.traits.forEach(trait => {
+                    // Format text bounded by asterisks as italics
+                    const formattedDesc = trait.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                    
+                    html += `
+                        <div class="statblock-property">
+                            <div class="statblock-property-name">${trait.name}</div>
+                            <div class="statblock-property-value">${formattedDesc}</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Add actions
+            if (beast.actions && beast.actions.length > 0) {
+                html += `
+                    <div class="statblock-separator"></div>
+                    <div class="statblock-action-title">Actions</div>
+                `;
+                
+                beast.actions.forEach(action => {
+                    // Format text bounded by asterisks as italics
+                    const formattedDesc = action.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                    
+                    html += `
+                        <div class="statblock-action">
+                            <div class="statblock-action-name">${action.name}.</div>
+                            <div>${formattedDesc}</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Add reactions
+            if (beast.reactions && beast.reactions.length > 0) {
+                html += `
+                    <div class="statblock-separator"></div>
+                    <div class="statblock-action-title">Reactions</div>
+                `;
+                
+                beast.reactions.forEach(reaction => {
+                    // Format text bounded by asterisks as italics
+                    const formattedReactionDesc = reaction.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                    
+                    html += `
+                        <div class="statblock-action">
+                            <div class="statblock-action-name">${reaction.name}.</div>
+                            <div>${formattedReactionDesc}</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Add legendary actions
+            if (beast.legendaryActions && beast.legendaryActions.length > 0) {
+                html += `
+                    <div class="statblock-separator"></div>
+                    <div class="statblock-action-title">Legendary Actions</div>
+                `;
+                
+                beast.legendaryActions.forEach(legendaryAction => {
+                    // Format text bounded by asterisks as italics
+                    const formattedLegendaryDesc = legendaryAction.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                    
+                    html += `
+                        <div class="statblock-action">
+                            <div class="statblock-action-name">${legendaryAction.name}.</div>
+                            <div>${formattedLegendaryDesc}</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Close the statblock container
+            html += `</div>`;
+            
+            // Update the statblock display
+            elements.statblockDisplay.innerHTML = html;
+        } catch (error) {
+            console.error('Error rendering statblock:', error);
+            showError('Error rendering statblock: ' + error.message);
         }
-        
-        // Close the statblock container
-        html += `</div>`;
-        
-        // Remove description section as requested
-        
-        // Update the statblock display
-        elements.statblockDisplay.innerHTML = html;
     }
     
     /**
@@ -608,9 +666,43 @@ const UIManager = (function() {
      * @param {number} numCreatures - Number of creatures conjured
      */
     function renderAttackOptions(beast, numCreatures) {
+        // Make sure beast.actions exists
+        if (!beast.actions) {
+            beast.actions = [];
+        }
+        
+        // Check if any traits contain attack information
+        if (beast.traits && beast.traits.length > 0 && beast.actions.length === 0) {
+            // If we have no actions but do have traits, scan for attack information in traits
+            beast.traits.forEach(trait => {
+                if (trait.desc.includes('Weapon Attack:')) {
+                    const attackMatch = trait.desc.match(/([A-Za-z]+ Weapon Attack:)\s*\+(\d+) to hit/);
+                    const damageMatch = trait.desc.match(/Hit: (\d+) \(([^\)]+)\) ([a-z]+) damage/);
+                    
+                    if (attackMatch) {
+                        // Found attack in trait, create action
+                        const action = {
+                            name: trait.name,
+                            desc: trait.desc,
+                            attackBonus: attackMatch[2]
+                        };
+                        
+                        if (damageMatch) {
+                            action.damageAvg = damageMatch[1];
+                            action.damageDice = damageMatch[2];
+                            action.damageType = damageMatch[3];
+                        }
+                        
+                        // Add to actions
+                        beast.actions.push(action);
+                    }
+                }
+            });
+        }
+        
         // Filter out actions that have attack bonuses
         const attackActions = beast.actions.filter(action => 
-            action.attackBonus && action.damageAvg
+            action.attackBonus && (action.damageAvg || action.desc.includes('damage'))
         );
         
         if (attackActions.length === 0) {
@@ -635,7 +727,11 @@ const UIManager = (function() {
         
         // Add attack options
         attackActions.forEach((action, index) => {
-            html += `<option value="${index}">${action.name} (+${action.attackBonus} to hit, ${action.damageAvg} ${action.damageType} damage)</option>`;
+            const damageText = action.damageAvg ? 
+                `${action.damageAvg} ${action.damageType || 'damage'}` : 
+                'damage';
+            
+            html += `<option value="${index}">${action.name} (+${action.attackBonus} to hit, ${damageText})</option>`;
         });
         
         html += `
@@ -694,6 +790,22 @@ const UIManager = (function() {
         let misses = 0;
         let criticalHits = 0;
         let totalDamage = 0;
+        
+        // If damageAvg is not available, extract it from the description
+        if (!attack.damageAvg && attack.desc) {
+            const damageMatch = attack.desc.match(/Hit: (\d+) \(/);
+            if (damageMatch) {
+                attack.damageAvg = damageMatch[1];
+            } else {
+                // Default to 1d6 average (3.5) if we can't extract it
+                attack.damageAvg = 3;
+            }
+        }
+        
+        // If damageType is not available, default to piercing
+        if (!attack.damageType) {
+            attack.damageType = "damage";
+        }
         
         // Roll for each attacker
         for (let i = 0; i < numAttackers; i++) {

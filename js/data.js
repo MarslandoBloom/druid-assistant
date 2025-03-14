@@ -78,8 +78,16 @@ const DataManager = (function() {
                 
                 // Start a new beast
                 const name = line.substring(4).trim();
+                // Ensure name is valid and create a consistent ID
+                const id = name.toLowerCase()
+                    .replace(/[^a-z0-9]/g, '-')
+                    .replace(/-+/g, '-')  // Replace multiple hyphens with single hyphen
+                    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+                
+                console.log(`Parsing beast: ${name}, ID: ${id}`);
+                
                 currentBeast = {
-                    id: name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                    id: id,
                     name: name,
                     traits: [],
                     actions: [],
@@ -114,21 +122,45 @@ const DataManager = (function() {
                 }
                 // Handle ability scores
                 else if (line.startsWith('>|STR|DEX|CON|INT|WIS|CHA|')) {
-                    // Next line contains the ability score values
-                    const scores = lines[i+2].trim();
-                    const scoreParts = scores.substring(1, scores.length-1).split('|');
-                    
-                    currentBeast.abilities = {
-                        str: scoreParts[0].trim(),
-                        dex: scoreParts[1].trim(),
-                        con: scoreParts[2].trim(),
-                        int: scoreParts[3].trim(),
-                        wis: scoreParts[4].trim(),
-                        cha: scoreParts[5].trim()
-                    };
-                    
-                    // Skip the next two lines (we've already processed them)
-                    i += 2;
+                    try {
+                        // Format of the ability scores is typically:
+                        // >|STR|DEX|CON|INT|WIS|CHA|
+                        // >|:---:|:---:|:---:|:---:|:---:|:---:|
+                        // >|19 (+4)|13 (+1)|17 (+3)|2 (-4)|12 (+1)|5 (-3)|
+                        
+                        // Get the third line with the actual values
+                        const scores = lines[i+2].trim();
+                        
+                        // Parse the scores, they are in format |str|dex|con|int|wis|cha|
+                        // Remove the leading and trailing | and split by |
+                        const scoreParts = scores.substring(1, scores.length-1).split('|');
+                        
+                        // Log for debugging
+                        console.log(`Raw ability scores for ${currentBeast.name}:`, scoreParts);
+                        
+                        // Create abilities object with proper formatting
+                        currentBeast.abilities = {
+                            str: scoreParts[0].trim(),
+                            dex: scoreParts[1].trim(),
+                            con: scoreParts[2].trim(),
+                            int: scoreParts[3].trim(),
+                            wis: scoreParts[4].trim(),
+                            cha: scoreParts[5].trim()
+                        };
+                        
+                        // Skip the next two lines (we've already processed them)
+                        i += 2;
+                    } catch (error) {
+                        console.error(`Error parsing ability scores for ${currentBeast.name}:`, error);
+                        currentBeast.abilities = {
+                            str: "10 (+0)",
+                            dex: "10 (+0)",
+                            con: "10 (+0)",
+                            int: "10 (+0)",
+                            wis: "10 (+0)",
+                            cha: "10 (+0)"
+                        };
+                    }
                 }
                 // Handle skills, senses, etc.
                 else if (line.startsWith('>- **Skills**')) {
@@ -164,10 +196,28 @@ const DataManager = (function() {
                     if (endIndex !== -1) {
                         const traitName = traitText.substring(0, endIndex).trim();
                         const traitDesc = traitText.substring(endIndex + 3).trim();
-                        currentBeast.traits.push({
-                            name: traitName,
-                            desc: traitDesc
-                        });
+                        
+                        if (currentSection === 'actions') {
+                            currentBeast.actions.push({
+                                name: traitName,
+                                desc: traitDesc
+                            });
+                        } else if (currentSection === 'reactions') {
+                            currentBeast.reactions.push({
+                                name: traitName,
+                                desc: traitDesc
+                            });
+                        } else if (currentSection === 'legendaryActions') {
+                            currentBeast.legendaryActions.push({
+                                name: traitName,
+                                desc: traitDesc
+                            });
+                        } else {
+                            currentBeast.traits.push({
+                                name: traitName,
+                                desc: traitDesc
+                            });
+                        }
                     }
                 }
                 // Handle section headers
@@ -180,41 +230,9 @@ const DataManager = (function() {
                 else if (line.startsWith('>### Legendary Actions')) {
                     currentSection = 'legendaryActions';
                 }
-                // Handle action entries
-                else if (line.startsWith('>***') && currentSection) {
-                    const actionText = line.substring(4);
-                    const endIndex = actionText.indexOf('***');
-                    if (endIndex !== -1) {
-                        const actionName = actionText.substring(0, endIndex).trim();
-                        const actionDesc = actionText.substring(endIndex + 3).trim();
-                        
-                        const action = {
-                            name: actionName,
-                            desc: actionDesc
-                        };
-                        
-                        // Extract attack and damage info if present
-                        if (actionDesc.includes('Melee Weapon Attack:') || actionDesc.includes('Ranged Weapon Attack:')) {
-                            const attackMatch = actionDesc.match(/([A-Za-z]+ Weapon Attack:)\s*\+(\d+) to hit/);
-                            if (attackMatch) {
-                                action.attackType = attackMatch[1];
-                                action.attackBonus = attackMatch[2];
-                            }
-                            
-                            const damageMatch = actionDesc.match(/Hit: (\d+) \(([^\)]+)\) ([a-z]+) damage/);
-                            if (damageMatch) {
-                                action.damageAvg = damageMatch[1];
-                                action.damageDice = damageMatch[2];
-                                action.damageType = damageMatch[3];
-                            }
-                        }
-                        
-                        currentBeast[currentSection].push(action);
-                    }
-                }
                 // Handle type and size from subtitle line
                 else if (line.startsWith('>*') && !currentBeast.size) {
-                                            const subtitleMatch = line.match(/>*([A-Za-z]+) ([A-Za-z]+)(?: \(([A-Za-z]+)\))?, ([a-z ]+)\*/i);
+                    const subtitleMatch = line.match(/>*([A-Za-z]+) ([A-Za-z]+)(?: \(([A-Za-z]+)\))?, ([a-z ]+)\*/i);
                     if (subtitleMatch) {
                         currentBeast.size = subtitleMatch[1];
                         currentBeast.type = subtitleMatch[2];
@@ -251,7 +269,86 @@ const DataManager = (function() {
             beasts.push(currentBeast);
         }
         
+        // Process each beast to extract attack information and fix any formatting issues
+        beasts.forEach(beast => {
+            // Fix missing ability scores
+            if (!beast.abilities) {
+                console.warn(`Beast ${beast.name} is missing ability scores, using defaults`);
+                beast.abilities = {
+                    str: "10 (+0)",
+                    dex: "10 (+0)",
+                    con: "10 (+0)",
+                    int: "10 (+0)",
+                    wis: "10 (+0)",
+                    cha: "10 (+0)"
+                };
+            }
+            
+            // Process traits and actions to find attack information
+            processAttackInfo(beast);
+        });
+        
+        console.log(`Successfully parsed ${beasts.length} beasts`);
         return beasts;
+    }
+    
+    /**
+     * Processes a beast to extract attack information from actions and traits
+     * @param {Object} beast - Beast object to process
+     */
+    function processAttackInfo(beast) {
+        // Process actions
+        if (beast.actions) {
+            beast.actions.forEach(action => {
+                if (action.desc.includes('Weapon Attack:') || action.desc.includes('Melee Attack:') || action.desc.includes('Ranged Attack:')) {
+                    const attackMatch = action.desc.match(/([A-Za-z]+ (?:Weapon|Melee|Ranged) Attack:)\s*\+(\d+) to hit/);
+                    if (attackMatch) {
+                        action.attackType = attackMatch[1];
+                        action.attackBonus = attackMatch[2];
+                    }
+                    
+                    const damageMatch = action.desc.match(/Hit: (\d+) \(([^\)]+)\) ([a-z]+) damage/);
+                    if (damageMatch) {
+                        action.damageAvg = damageMatch[1];
+                        action.damageDice = damageMatch[2];
+                        action.damageType = damageMatch[3];
+                    }
+                }
+            });
+        }
+        
+        // Process traits for attack information (some beasts have attacks in traits)
+        if (beast.traits && (!beast.actions || beast.actions.length === 0)) {
+            beast.traits.forEach(trait => {
+                if (trait.desc.includes('Weapon Attack:') || trait.desc.includes('Melee Attack:') || trait.desc.includes('Ranged Attack:')) {
+                    // If this trait is an attack, create an action from it
+                    const attackMatch = trait.desc.match(/([A-Za-z]+ (?:Weapon|Melee|Ranged) Attack:)\s*\+(\d+) to hit/);
+                    const damageMatch = trait.desc.match(/Hit: (\d+) \(([^\)]+)\) ([a-z]+) damage/);
+                    
+                    if (attackMatch) {
+                        // Create a new action based on this trait
+                        const action = {
+                            name: trait.name,
+                            desc: trait.desc,
+                            attackType: attackMatch[1],
+                            attackBonus: attackMatch[2]
+                        };
+                        
+                        if (damageMatch) {
+                            action.damageAvg = damageMatch[1];
+                            action.damageDice = damageMatch[2];
+                            action.damageType = damageMatch[3];
+                        }
+                        
+                        // Add to actions
+                        if (!beast.actions) {
+                            beast.actions = [];
+                        }
+                        beast.actions.push(action);
+                    }
+                }
+            });
+        }
     }
     
     /**
@@ -282,10 +379,17 @@ const DataManager = (function() {
             };
             
             beasts.forEach(beast => {
-                const request = store.put(beast);
-                request.onsuccess = () => {
-                    savedCount++;
-                };
+                try {
+                    const request = store.put(beast);
+                    request.onsuccess = () => {
+                        savedCount++;
+                    };
+                    request.onerror = (event) => {
+                        console.error(`Error saving beast ${beast.name}:`, event.target.error);
+                    };
+                } catch (e) {
+                    console.error(`Exception while saving beast ${beast.name}:`, e);
+                }
             });
         });
     }
@@ -306,6 +410,7 @@ const DataManager = (function() {
             const request = store.getAll();
             
             request.onsuccess = () => {
+                console.log(`Retrieved ${request.result.length} beasts from database`);
                 resolve(request.result);
             };
             
@@ -328,15 +433,38 @@ const DataManager = (function() {
                 return;
             }
             
+            console.log(`Attempting to retrieve beast with ID: ${id}`);
+            
             const transaction = db.transaction([BEAST_STORE], 'readonly');
             const store = transaction.objectStore(BEAST_STORE);
             const request = store.get(id);
             
             request.onsuccess = () => {
                 if (request.result) {
+                    console.log(`Found beast: ${request.result.name}`);
                     resolve(request.result);
                 } else {
-                    reject(`Beast with ID ${id} not found`);
+                    console.error(`Beast with ID ${id} not found, trying fallback lookup`);
+                    
+                    // Fallback: try to get all beasts and find by ID or name
+                    getAllBeasts()
+                        .then(beasts => {
+                            // Try to find beast by ID (case insensitive)
+                            const beast = beasts.find(b => 
+                                b.id.toLowerCase() === id.toLowerCase() || 
+                                b.name.toLowerCase() === id.toLowerCase().replace(/-/g, ' ')
+                            );
+                            
+                            if (beast) {
+                                console.log(`Found beast via fallback: ${beast.name}`);
+                                resolve(beast);
+                            } else {
+                                reject(`Beast with ID ${id} not found`);
+                            }
+                        })
+                        .catch(error => {
+                            reject(error);
+                        });
                 }
             };
             
@@ -366,14 +494,91 @@ const DataManager = (function() {
                         );
                     }
                     
-                    // Apply CR filter (exact match)
+                    // Helper function to convert CR to numeric value
+                    const crToValue = (cr) => {
+                        if (cr === '0') return 0;
+                        if (cr === '1/8') return 0.125;
+                        if (cr === '1/4') return 0.25;
+                        if (cr === '1/2') return 0.5;
+                        return parseFloat(cr);
+                    };
+                    
+                    // Apply CR filter (exact match or range)
                     if (filters.cr && filters.cr !== 'all') {
-                        filtered = filtered.filter(beast => beast.cr === filters.cr);
+                        if (filters.cr.includes('-')) {
+                            // Range filter (e.g., "0-2")
+                            const [minCR, maxCR] = filters.cr.split('-');
+                            const minValue = crToValue(minCR.trim());
+                            const maxValue = crToValue(maxCR.trim());
+                            
+                            filtered = filtered.filter(beast => {
+                                const beastCRValue = crToValue(beast.cr);
+                                return beastCRValue >= minValue && beastCRValue <= maxValue;
+                            });
+                        } else if (filters.cr.startsWith('<=')) {
+                            // Less than or equal filter (e.g., "<=2")
+                            const maxCR = filters.cr.substring(2).trim();
+                            const maxValue = crToValue(maxCR);
+                            
+                            filtered = filtered.filter(beast => {
+                                const beastCRValue = crToValue(beast.cr);
+                                return beastCRValue <= maxValue;
+                            });
+                        } else if (filters.cr.startsWith('>=')) {
+                            // Greater than or equal filter (e.g., ">=1")
+                            const minCR = filters.cr.substring(2).trim();
+                            const minValue = crToValue(minCR);
+                            
+                            filtered = filtered.filter(beast => {
+                                const beastCRValue = crToValue(beast.cr);
+                                return beastCRValue >= minValue;
+                            });
+                        } else {
+                            // Exact match (e.g., "2")
+                            filtered = filtered.filter(beast => beast.cr === filters.cr);
+                        }
                     }
                     
-                    // Apply size filter (exact match)
+                    // Helper function to convert size to numeric value
+                    const sizeToValue = (size) => {
+                        const sizeOrder = { 'Tiny': 1, 'Small': 2, 'Medium': 3, 'Large': 4, 'Huge': 5, 'Gargantuan': 6 };
+                        return sizeOrder[size] || 0;
+                    };
+                    
+                    // Apply size filter (exact match or range)
                     if (filters.size && filters.size !== 'all') {
-                        filtered = filtered.filter(beast => beast.size === filters.size);
+                        if (filters.size.includes('-')) {
+                            // Range filter (e.g., "Small-Large")
+                            const [minSize, maxSize] = filters.size.split('-');
+                            const minValue = sizeToValue(minSize.trim());
+                            const maxValue = sizeToValue(maxSize.trim());
+                            
+                            filtered = filtered.filter(beast => {
+                                const beastSizeValue = sizeToValue(beast.size);
+                                return beastSizeValue >= minValue && beastSizeValue <= maxValue;
+                            });
+                        } else if (filters.size.startsWith('<=')) {
+                            // Less than or equal filter (e.g., "<=Medium")
+                            const maxSize = filters.size.substring(2).trim();
+                            const maxValue = sizeToValue(maxSize);
+                            
+                            filtered = filtered.filter(beast => {
+                                const beastSizeValue = sizeToValue(beast.size);
+                                return beastSizeValue <= maxValue;
+                            });
+                        } else if (filters.size.startsWith('>=')) {
+                            // Greater than or equal filter (e.g., ">=Large")
+                            const minSize = filters.size.substring(2).trim();
+                            const minValue = sizeToValue(minSize);
+                            
+                            filtered = filtered.filter(beast => {
+                                const beastSizeValue = sizeToValue(beast.size);
+                                return beastSizeValue >= minValue;
+                            });
+                        } else {
+                            // Exact match (e.g., "Large")
+                            filtered = filtered.filter(beast => beast.size === filters.size);
+                        }
                     }
                     
                     // Apply type filter (exact match)
@@ -511,6 +716,8 @@ const DataManager = (function() {
                     beastRequest.onsuccess = () => {
                         if (beastRequest.result) {
                             favoriteBeasts.push(beastRequest.result);
+                        } else {
+                            console.warn(`Favorite beast with ID ${fav.id} not found in beast store`);
                         }
                         
                         processed++;
@@ -580,6 +787,7 @@ const DataManager = (function() {
     function loadBeastData(markdownText) {
         return new Promise((resolve, reject) => {
             try {
+                console.log('Starting beast data parsing...');
                 const beasts = parseMarkdown(markdownText);
                 
                 if (beasts.length === 0) {
@@ -587,16 +795,28 @@ const DataManager = (function() {
                     return;
                 }
                 
+                console.log(`Parsed ${beasts.length} beasts, first beast: ${beasts[0].name}`);
+                console.log('Sample beast ID:', beasts[0].id);
+                
+                // Debug the first few beasts
+                beasts.slice(0, 3).forEach(beast => {
+                    console.log(`Beast "${beast.name}" (ID: ${beast.id})`);
+                    console.log(`  Size: ${beast.size}, Type: ${beast.type}, CR: ${beast.cr}`);
+                    console.log(`  Abilities:`, beast.abilities);
+                });
+                
                 saveBeasts(beasts)
                     .then(count => {
+                        console.log(`Successfully saved ${count} beasts to IndexedDB`);
                         resolve(count);
                     })
                     .catch(error => {
+                        console.error('Error saving beasts:', error);
                         reject(error);
                     });
             } catch (error) {
                 console.error('Error parsing markdown:', error);
-                reject('Error parsing markdown');
+                reject('Error parsing markdown: ' + error.message);
             }
         });
     }
