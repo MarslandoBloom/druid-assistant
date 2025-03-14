@@ -1,0 +1,225 @@
+/* Main Styling */
+:root {
+    --druid-green: #198754;
+    --druid-green-light: #e8f5e9;
+    --druid-green-dark: #145c3a;
+    --statblock-border-color: #ddb284;
+    --statblock-background: #fdf1dc;
+    --statblock-bar-color: #e69a28;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* Tab styling */
+.nav-tabs .nav-link {
+    color: var(--druid-green);
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    color: white;
+    background-color: var(--druid-green);
+    border-color: var(--druid-green);
+}
+
+/* Beast list styling */
+#beastList {
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+}
+
+.list-group-item.active {
+    background-color: var(--druid-green);
+    border-color: var(--druid-green);
+}
+
+.list-group-item-favorite {
+    background-color: var(--druid-green-light);
+}
+
+/* Statblock styling (D&D 5e style) */
+.statblock-container {
+    font-family: 'Noto Serif', 'Palatino Linotype', serif;
+    background-color: var(--statblock-background);
+    border: 1px solid var(--statblock-border-color);
+    border-radius: 5px;
+    margin: 10px 0;
+    padding: 5px 10px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.statblock-name {
+    color: #822000;
+    font-size: 1.4em;
+    font-variant: small-caps;
+    font-weight: bold;
+    margin: 0;
+}
+
+.statblock-subtitle {
+    font-style: italic;
+    margin-bottom: 5px;
+}
+
+.statblock-separator {
+    height: 4px;
+    background-color: var(--statblock-bar-color);
+    border: 1px solid #000;
+    border-radius: 2px;
+    margin: 5px 0;
+}
+
+.statblock-separator-short {
+    height: 2px;
+    background-color: var(--statblock-bar-color);
+    border: 1px solid #000;
+    border-radius: 2px;
+    margin: 5px 0;
+    width: 50%;
+}
+
+.statblock-property {
+    margin-bottom: 5px;
+    line-height: 1.2;
+}
+
+.statblock-property-name {
+    font-weight: bold;
+}
+
+.statblock-property-value {
+    display: inline;
+}
+
+.statblock-ability-scores {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    text-align: center;
+}
+
+.statblock-ability {
+    width: 16%;
+}
+
+.statblock-ability-name {
+    font-weight: bold;
+}
+
+.statblock-ability-score {
+    font-weight: normal;
+}
+
+.statblock-ability-mod {
+    color: #444;
+}
+
+.statblock-action-title {
+    font-style: italic;
+    font-weight: bold;
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.statblock-action {
+    margin-bottom: 10px;
+}
+
+.statblock-action-name {
+    font-weight: bold;
+    font-style: italic;
+}
+
+/* Conjure Animals tab styling */
+.health-tracker {
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: white;
+}
+
+.health-tracker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.health-tracker-name {
+    font-weight: bold;
+}
+
+.health-tracker-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.health-tracker-bar {
+    height: 10px;
+    background-color: #ccc;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.health-tracker-fill {
+    height: 100%;
+    background-color: var(--druid-green);
+    transition: width 0.3s ease;
+}
+
+/* Battlefield styling */
+.battlefield-container {
+    position: relative;
+    min-height: 400px;
+    border: 1px solid #ddd;
+    background-color: #f8f9fa;
+    background-image: 
+        linear-gradient(to right, #eee 1px, transparent 1px),
+        linear-gradient(to bottom, #eee 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+.token {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    cursor: move;
+    user-select: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.token-friendly {
+    background-color: var(--druid-green);
+}
+
+.token-enemy {
+    background-color: #dc3545;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .statblock-ability-scores {
+        flex-wrap: wrap;
+    }
+    
+    .statblock-ability {
+        width: 30%;
+        margin-bottom: 10px;
+    }
+    
+    #beastList {
+        max-height: 300px;
+    }
+}
