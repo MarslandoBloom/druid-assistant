@@ -120,38 +120,54 @@ const DataManager = (function() {
                 else if (line.startsWith('>- **Speed**')) {
                     currentBeast.speed = line.substring(12).trim();
                 }
-                // Handle ability scores
+                // Handle ability scores table
                 else if (line.startsWith('>|STR|DEX|CON|INT|WIS|CHA|')) {
                     try {
-                        // Format of the ability scores is typically:
+                        // The ability scores table typically consists of three lines:
                         // >|STR|DEX|CON|INT|WIS|CHA|
                         // >|:---:|:---:|:---:|:---:|:---:|:---:|
                         // >|19 (+4)|13 (+1)|17 (+3)|2 (-4)|12 (+1)|5 (-3)|
                         
-                        // Get the third line with the actual values
-                        const scores = lines[i+2].trim();
+                        // Skip the separator line (line with :---:)
+                        i += 1;
                         
-                        // Parse the scores, they are in format |str|dex|con|int|wis|cha|
-                        // Remove the leading and trailing | and split by |
-                        const scoreParts = scores.substring(1, scores.length-1).split('|');
-                        
-                        // Log for debugging
-                        console.log(`Raw ability scores for ${currentBeast.name}:`, scoreParts);
-                        
-                        // Create abilities object with proper formatting
-                        currentBeast.abilities = {
-                            str: scoreParts[0].trim(),
-                            dex: scoreParts[1].trim(),
-                            con: scoreParts[2].trim(),
-                            int: scoreParts[3].trim(),
-                            wis: scoreParts[4].trim(),
-                            cha: scoreParts[5].trim()
-                        };
-                        
-                        // Skip the next two lines (we've already processed them)
-                        i += 2;
+                        // Get the values line (should be two lines after the header)
+                        if (i + 1 < lines.length) {
+                            const valuesLine = lines[i + 1].trim();
+                            
+                            // Validate this is the values line
+                            if (valuesLine.startsWith('>|') && valuesLine.endsWith('|')) {
+                                // Extract the values, remove leading >| and trailing |
+                                const values = valuesLine.substring(2, valuesLine.length - 1).split('|');
+                                
+                                // Verify we have exactly 6 values
+                                if (values.length === 6) {
+                                    // Create the abilities object with correct mapping
+                                    currentBeast.abilities = {
+                                        str: values[0].trim(),
+                                        dex: values[1].trim(),
+                                        con: values[2].trim(),
+                                        int: values[3].trim(),
+                                        wis: values[4].trim(),
+                                        cha: values[5].trim()
+                                    };
+                                    
+                                    console.log(`Parsed abilities for ${currentBeast.name}:`, currentBeast.abilities);
+                                    
+                                    // Skip the values line since we've processed it
+                                    i += 1;
+                                } else {
+                                    throw new Error(`Expected 6 ability values, found ${values.length} in line: ${valuesLine}`);
+                                }
+                            } else {
+                                throw new Error(`Expected ability score values line, found: ${valuesLine}`);
+                            }
+                        } else {
+                            throw new Error('Unexpected end of file when parsing ability scores');
+                        }
                     } catch (error) {
                         console.error(`Error parsing ability scores for ${currentBeast.name}:`, error);
+                        // Use default abilities as fallback
                         currentBeast.abilities = {
                             str: "10 (+0)",
                             dex: "10 (+0)",
@@ -271,7 +287,7 @@ const DataManager = (function() {
         
         // Process each beast to extract attack information and fix any formatting issues
         beasts.forEach(beast => {
-            // Fix missing ability scores
+            // Add default abilities if missing
             if (!beast.abilities) {
                 console.warn(`Beast ${beast.name} is missing ability scores, using defaults`);
                 beast.abilities = {

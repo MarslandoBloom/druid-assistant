@@ -137,7 +137,21 @@ const UIManager = (function() {
         DataManager.getBeastById(beastId)
             .then(beast => {
                 console.log("Beast data loaded:", beast.name);
-                console.log("Ability scores:", beast.abilities);
+                
+                // Ensure beast has ability scores
+                if (!beast.abilities) {
+                    console.warn(`Beast ${beast.name} is missing ability scores, adding defaults`);
+                    beast.abilities = {
+                        str: "10 (+0)",
+                        dex: "10 (+0)",
+                        con: "10 (+0)",
+                        int: "10 (+0)",
+                        wis: "10 (+0)",
+                        cha: "10 (+0)"
+                    };
+                }
+                
+                console.log("Raw ability scores:", beast.abilities);
                 
                 currentBeast = beast;
                 renderStatblock(beast);
@@ -184,34 +198,33 @@ const UIManager = (function() {
      * @returns {Object} Object with score and modifier properties
      */
     function parseAbilityScore(scoreText) {
-        // Check if the score text is valid
-        if (!scoreText || typeof scoreText !== 'string' || scoreText.trim() === '') {
-            console.warn('Invalid ability score, using default');
+        if (!scoreText || typeof scoreText !== 'string') {
             return { score: 10, mod: '+0' };
         }
         
-        // Try to extract the raw score (number before the space)
-        const scoreParts = scoreText.trim().split(' ');
-        const rawScore = parseInt(scoreParts[0]);
+        // Simple regex to extract the score and modifier
+        const match = scoreText.match(/(\d+)\s*\(([+-]\d+)\)/);
         
-        // If we couldn't parse the score, use a default
-        if (isNaN(rawScore)) {
-            console.warn(`Could not parse score from: ${scoreText}`);
-            return { score: 10, mod: '+0' };
+        if (match) {
+            return {
+                score: parseInt(match[1]),
+                mod: match[2]
+            };
         }
         
-        // Extract the modifier (text in parentheses)
-        let modifier = '+0';
-        const modMatch = scoreText.match(/\(([+-]\d+)\)/);
-        if (modMatch) {
-            modifier = modMatch[1];
-        } else {
-            // Calculate modifier if not provided
-            const calculatedMod = Math.floor((rawScore - 10) / 2);
-            modifier = calculatedMod >= 0 ? `+${calculatedMod}` : `${calculatedMod}`;
+        // If we can't parse it properly, extract just the first number as score
+        const scoreMatch = scoreText.match(/(\d+)/);
+        if (scoreMatch) {
+            const score = parseInt(scoreMatch[1]);
+            // Calculate modifier: (score - 10) / 2, rounded down
+            const modValue = Math.floor((score - 10) / 2);
+            const mod = modValue >= 0 ? `+${modValue}` : `${modValue}`;
+            
+            return { score, mod };
         }
         
-        return { score: rawScore, mod: modifier };
+        // Default fallback
+        return { score: 10, mod: '+0' };
     }
     
     /**
@@ -239,15 +252,6 @@ const UIManager = (function() {
             const intParsed = parseAbilityScore(beast.abilities.int);
             const wisParsed = parseAbilityScore(beast.abilities.wis);
             const chaParsed = parseAbilityScore(beast.abilities.cha);
-            
-            console.log("Parsed ability scores:", {
-                str: strParsed,
-                dex: dexParsed,
-                con: conParsed,
-                int: intParsed,
-                wis: wisParsed,
-                cha: chaParsed
-            });
             
             let html = `
                 <div class="statblock-container">
@@ -702,10 +706,35 @@ const UIManager = (function() {
         
         // Filter out actions that have attack bonuses
         const attackActions = beast.actions.filter(action => 
-            action.attackBonus && (action.damageAvg || action.desc.includes('damage'))
+            action.attackBonus || action.desc.includes('+') && action.desc.includes('to hit')
         );
         
-        if (attackActions.length === 0) {
+        // If no attack actions were found with attackBonus, try to extract it from the description
+        if (attackActions.length === 0 || !attackActions.some(a => a.attackBonus)) {
+            beast.actions.forEach(action => {
+                if (action.desc.includes('to hit')) {
+                    const attackMatch = action.desc.match(/\+(\d+) to hit/);
+                    if (attackMatch) {
+                        action.attackBonus = attackMatch[1];
+                        
+                        // Try to extract damage info
+                        const damageMatch = action.desc.match(/Hit: (\d+) \(([^\)]+)\) ([a-z]+) damage/);
+                        if (damageMatch) {
+                            action.damageAvg = damageMatch[1];
+                            action.damageDice = damageMatch[2];
+                            action.damageType = damageMatch[3];
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Get updated list of attack actions
+        const updatedAttackActions = beast.actions.filter(action => 
+            action.attackBonus || (action.desc && action.desc.includes('to hit'))
+        );
+        
+        if (updatedAttackActions.length === 0) {
             elements.attackOptions.innerHTML = `
                 <div class="alert alert-warning">
                     <p>No attack actions found for this beast.</p>
@@ -726,10 +755,26 @@ const UIManager = (function() {
         `;
         
         // Add attack options
-        attackActions.forEach((action, index) => {
-            const damageText = action.damageAvg ? 
-                `${action.damageAvg} ${action.damageType || 'damage'}` : 
-                'damage';
+        updatedAttackActions.forEach((action, index) => {
+            // Extract attack bonus if not already set
+            if (!action.attackBonus && action.desc) {
+                const bonusMatch = action.desc.match(/\+(\d+) to hit/);
+                if (bonusMatch) {
+                    action.attackBonus = bonusMatch[1];
+                }
+            }
+            
+            // Get damage text
+            let damageText = 'damage';
+            if (action.damageAvg && action.damageType) {
+                damageText = `${action.damageAvg} ${action.damageType} damage`;
+            } else if (action.desc) {
+                // Try to extract from description
+                const damageMatch = action.desc.match(/Hit: (\d+).+?([a-z]+) damage/);
+                if (damageMatch) {
+                    damageText = `${damageMatch[1]} ${damageMatch[2]} damage`;
+                }
+            }
             
             html += `<option value="${index}">${action.name} (+${action.attackBonus} to hit, ${damageText})</option>`;
         });
@@ -768,7 +813,7 @@ const UIManager = (function() {
                 const targetAC = parseInt(document.getElementById('targetAC').value) || 15;
                 
                 // Get the selected attack
-                const attack = attackActions[attackIndex];
+                const attack = updatedAttackActions[attackIndex];
                 
                 // Roll the attacks
                 rollAttacks(attack, numAttackers, attackType, targetAC);
