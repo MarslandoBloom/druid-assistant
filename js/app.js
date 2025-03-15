@@ -15,7 +15,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Beast list and filtering
         beastSearch: document.getElementById('beastSearch'),
         clearSearch: document.getElementById('clearSearch'),
-        filterDropdown: document.getElementById('filterDropdown'),
+        enableCRRange: document.getElementById('enableCRRange'),
+        crRangeInputs: document.getElementById('crRangeInputs'),
+        minCR: document.getElementById('minCR'),
+        maxCR: document.getElementById('maxCR'),
+        applyCRFilter: document.getElementById('applyCRFilter'),
+        sizeFilters: document.querySelectorAll('.size-filter'),
         showFavorites: document.getElementById('showFavorites'),
         resetFilters: document.getElementById('resetFilters'),
         
@@ -34,6 +39,9 @@ document.addEventListener('DOMContentLoaded', function() {
         resetDataBtn: document.getElementById('resetDataBtn')
     };
     
+    // Store available CR values
+    let availableCRs = [];
+    
     /**
      * Initializes the application
      */
@@ -51,6 +59,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     // Render the beast list
                     UIManager.renderBeastList(beasts);
+                    
+                    // Initialize the CR filter options
+                    initCRFilterOptions(beasts);
                 }
             })
             .catch(error => {
@@ -60,6 +71,52 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set up event listeners
         setupEventListeners();
+    }
+    
+    /**
+     * Initializes CR filter dropdown options based on available beasts
+     * @param {Array} beasts - Array of beast objects
+     */
+    function initCRFilterOptions(beasts) {
+        // Extract unique CR values
+        const crValues = new Set();
+        
+        // Helper function to convert CR to numeric value for sorting
+        const crToValue = (cr) => {
+            if (cr === '0') return 0;
+            if (cr === '1/8') return 0.125;
+            if (cr === '1/4') return 0.25;
+            if (cr === '1/2') return 0.5;
+            return parseFloat(cr);
+        };
+        
+        // Extract and convert CR values
+        beasts.forEach(beast => {
+            if (beast.cr) {
+                crValues.add(beast.cr);
+            }
+        });
+        
+        // Convert to array and sort
+        availableCRs = Array.from(crValues);
+        availableCRs.sort((a, b) => crToValue(a) - crToValue(b));
+        
+        // Clear existing options
+        elements.minCR.innerHTML = '<option value="all">Any</option>';
+        elements.maxCR.innerHTML = '<option value="all">Any</option>';
+        
+        // Add options to select dropdowns
+        availableCRs.forEach(cr => {
+            const minOption = document.createElement('option');
+            minOption.value = cr;
+            minOption.textContent = `CR ${cr}`;
+            elements.minCR.appendChild(minOption);
+            
+            const maxOption = document.createElement('option');
+            maxOption.value = cr;
+            maxOption.textContent = `CR ${cr}`;
+            elements.maxCR.appendChild(maxOption);
+        });
     }
     
     /**
@@ -114,6 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         });
+        
         // Beast search
         elements.beastSearch.addEventListener('input', function() {
             UIManager.setFilter('name', this.value);
@@ -127,23 +185,60 @@ document.addEventListener('DOMContentLoaded', function() {
             UIManager.applyFilters();
         });
         
-        // Filter options
-        const filterOptions = document.querySelectorAll('.filter-option');
-        filterOptions.forEach(option => {
-            option.addEventListener('click', function(e) {
-                e.preventDefault();
-                const filterType = this.dataset.filterType;
-                const filterValue = this.dataset.filterValue;
-                
-                UIManager.setFilter(filterType, filterValue);
+        // Enable CR Range filter
+        elements.enableCRRange.addEventListener('change', function() {
+            elements.crRangeInputs.style.display = this.checked ? 'flex' : 'none';
+            elements.minCR.disabled = !this.checked;
+            elements.maxCR.disabled = !this.checked;
+            
+            if (!this.checked) {
+                // If unchecked, reset to "all" CRs
+                UIManager.setFilter('cr', 'all');
                 UIManager.applyFilters();
+            }
+        });
+        
+        // Apply CR filter button
+        elements.applyCRFilter.addEventListener('click', function() {
+            if (elements.enableCRRange.checked) {
+                const minCR = elements.minCR.value;
+                const maxCR = elements.maxCR.value;
                 
-                // Update dropdown button text
-                if (filterType === 'cr') {
-                    document.getElementById('filterCRDropdown').textContent = filterValue === 'all' ? 'CR: All' : `CR: ${filterValue}`;
-                } else if (filterType === 'size') {
-                    document.getElementById('filterSizeDropdown').textContent = filterValue === 'all' ? 'Size: All' : `Size: ${filterValue}`;
+                if (minCR === 'all' && maxCR === 'all') {
+                    // Both set to "Any", apply no CR filter
+                    UIManager.setFilter('cr', 'all');
+                } else if (minCR === 'all') {
+                    // Only max specified
+                    UIManager.setFilter('cr', `<=${maxCR}`);
+                } else if (maxCR === 'all') {
+                    // Only min specified
+                    UIManager.setFilter('cr', `>=${minCR}`);
+                } else {
+                    // Both specified
+                    UIManager.setFilter('cr', `${minCR}-${maxCR}`);
                 }
+                
+                UIManager.applyFilters();
+            }
+        });
+        
+        // Size filter buttons
+        elements.sizeFilters.forEach(button => {
+            button.addEventListener('click', function() {
+                // First, remove active class from all size buttons
+                elements.sizeFilters.forEach(btn => {
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-success');
+                });
+                
+                // Then highlight this button
+                this.classList.remove('btn-outline-success');
+                this.classList.add('btn-success');
+                
+                // Apply size filter
+                const size = this.dataset.size;
+                UIManager.setFilter('size', size);
+                UIManager.applyFilters();
             });
         });
         
@@ -153,25 +248,58 @@ document.addEventListener('DOMContentLoaded', function() {
             option.addEventListener('click', function(e) {
                 e.preventDefault();
                 const sortType = this.dataset.sort;
+                const sortDirection = this.dataset.direction;
+                
                 UIManager.setSort(sortType);
+                UIManager.setSortDirection(sortDirection);
                 UIManager.applyFilters();
                 
                 // Update sort dropdown text
-                document.getElementById('sortDropdown').textContent = `Sort: ${sortType.charAt(0).toUpperCase() + sortType.slice(1)}`;
+                const sortText = this.textContent;
+                document.getElementById('sortDropdown').textContent = `Sort: ${sortText}`;
             });
         });
         
         // Show favorites
         elements.showFavorites.addEventListener('click', function() {
             UIManager.showOnlyFavorites();
+            
+            // Update button appearances
+            this.classList.remove('btn-outline-success');
+            this.classList.add('btn-success');
         });
         
         // Reset filters
         elements.resetFilters.addEventListener('click', function() {
             UIManager.resetFilters();
-            document.getElementById('filterCRDropdown').textContent = 'CR: All';
-            document.getElementById('filterSizeDropdown').textContent = 'Size: All';
-            document.getElementById('sortDropdown').textContent = 'Sort: Name';
+            
+            // Reset all UI filter indicators
+            elements.beastSearch.value = '';
+            
+            // Reset CR filter
+            elements.enableCRRange.checked = false;
+            elements.crRangeInputs.style.display = 'none';
+            elements.minCR.disabled = true;
+            elements.maxCR.disabled = true;
+            elements.minCR.value = 'all';
+            elements.maxCR.value = 'all';
+            
+            // Reset size filter buttons
+            elements.sizeFilters.forEach(btn => {
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-success');
+                if (btn.dataset.size === 'all') {
+                    btn.classList.remove('btn-outline-success');
+                    btn.classList.add('btn-success');
+                }
+            });
+            
+            // Reset sort dropdown
+            document.getElementById('sortDropdown').textContent = 'Sort: Name (A-Z)';
+            
+            // Reset favorites button
+            elements.showFavorites.classList.remove('btn-success');
+            elements.showFavorites.classList.add('btn-outline-success');
         });
         
         // Wildshape button
@@ -241,6 +369,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         DataManager.getAllBeasts()
                             .then(beasts => {
                                 UIManager.renderBeastList(beasts);
+                                
+                                // Refresh CR filter options
+                                initCRFilterOptions(beasts);
                             });
                         
                         // Close the modal
@@ -280,6 +411,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <p class="text-muted">The statblock will appear here</p>
                             </div>
                         `;
+                        
+                        // Reset CR filter options
+                        elements.minCR.innerHTML = '<option value="all">Any</option>';
+                        elements.maxCR.innerHTML = '<option value="all">Any</option>';
+                        availableCRs = [];
                         
                         // Disable buttons
                         elements.wildshapeButton.disabled = true;

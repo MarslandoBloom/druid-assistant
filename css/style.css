@@ -133,6 +133,16 @@ body {
     font-style: italic;
 }
 
+/* Source information styling */
+.statblock-source {
+    font-size: 0.85em;
+    color: #666;
+    font-style: italic;
+    margin-top: 10px;
+    padding: 5px 0;
+    border-top: 1px dashed #ddd;
+}
+
 /* Conjure Animals tab styling */
 .health-tracker {
     margin-bottom: 10px;
@@ -206,6 +216,13 @@ body {
 
 .token-enemy {
     background-color: #dc3545;
+}
+
+/* Dropdown header styling */
+.dropdown-header {
+    font-weight: bold;
+    color: var(--druid-green);
+    padding: 8px 16px;
 }
 
 /* Responsive adjustments */

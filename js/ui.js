@@ -10,7 +10,11 @@ const UIManager = (function() {
         beastList: document.getElementById('beastList'),
         beastSearch: document.getElementById('beastSearch'),
         clearSearch: document.getElementById('clearSearch'),
-        filterDropdown: document.getElementById('filterDropdown'),
+        minCR: document.getElementById('minCR'),
+        maxCR: document.getElementById('maxCR'),
+        enableCRRange: document.getElementById('enableCRRange'),
+        applyCRFilter: document.getElementById('applyCRFilter'),
+        sizeFilters: document.querySelectorAll('.size-filter'),
         showFavorites: document.getElementById('showFavorites'),
         resetFilters: document.getElementById('resetFilters'),
         
@@ -44,6 +48,82 @@ const UIManager = (function() {
     let currentBeast = null;
     let currentFilters = { name: '', cr: 'all', size: 'all' };
     let currentSort = 'name';
+    let currentSortDirection = 'asc';
+    
+    // Source information mapping for beasts
+    // This would ideally come from the data file, but we'll hardcode some examples
+    const sourceMap = {
+        'giant-toad': {
+            mainSource: "MM",
+            mainPage: 329,
+            otherSources: ["WDMM", "GoS", "EGW", "TCE", "WBtW", "KftGV", "QftIS"],
+            inSRD: true
+        },
+        'allosaurus': {
+            mainSource: "MM",
+            mainPage: 79,
+            otherSources: ["ToA"],
+            inSRD: true
+        },
+        'brown-bear': {
+            mainSource: "MM",
+            mainPage: 319,
+            otherSources: ["PHB"],
+            inSRD: true
+        }
+        // Add more as needed
+    };
+    
+    /**
+     * Gets source information for a beast
+     * @param {string} beastId - ID of the beast
+     * @returns {object|null} Source information object or null if not found
+     */
+    function getSourceInfo(beastId) {
+        // In a real implementation, this might come from the beast data itself
+        // For now, we'll use our hardcoded mapping with a fallback
+        if (sourceMap[beastId]) {
+            return sourceMap[beastId];
+        }
+        
+        // Default fallback for beasts without specific source info
+        return {
+            mainSource: "MM",
+            otherSources: [],
+            inSRD: true
+        };
+    }
+    
+    /**
+     * Formats source information into a display string
+     * @param {object} sourceInfo - Source information object
+     * @returns {string} Formatted source string
+     */
+    function formatSourceInfo(sourceInfo) {
+        if (!sourceInfo) return "";
+        
+        let sourceText = "";
+        
+        // Main source
+        if (sourceInfo.mainSource) {
+            sourceText += `<em>${sourceInfo.mainSource}</em>`;
+            if (sourceInfo.mainPage) {
+                sourceText += `, page ${sourceInfo.mainPage}`;
+            }
+        }
+        
+        // Other sources
+        if (sourceInfo.otherSources && sourceInfo.otherSources.length > 0) {
+            sourceText += `. Also found in <em>${sourceInfo.otherSources.join('</em>; <em>')}</em>`;
+        }
+        
+        // SRD info
+        if (sourceInfo.inSRD) {
+            sourceText += ". Available in the SRD.";
+        }
+        
+        return sourceText;
+    }
     
     /**
      * Renders the list of beasts based on filters
@@ -57,10 +137,13 @@ const UIManager = (function() {
             return;
         }
         
-        // Sort beasts based on current sort option
+        // Sort beasts based on current sort option and direction
         switch (currentSort) {
             case 'name':
-                beasts.sort((a, b) => a.name.localeCompare(b.name));
+                beasts.sort((a, b) => {
+                    const result = a.name.localeCompare(b.name);
+                    return currentSortDirection === 'asc' ? result : -result;
+                });
                 break;
             case 'cr':
                 beasts.sort((a, b) => {
@@ -72,12 +155,16 @@ const UIManager = (function() {
                         if (cr === '1/2') return 0.5;
                         return parseFloat(cr);
                     };
-                    return crToValue(a.cr) - crToValue(b.cr);
+                    const result = crToValue(a.cr) - crToValue(b.cr);
+                    return currentSortDirection === 'asc' ? result : -result;
                 });
                 break;
             case 'size':
                 const sizeOrder = { 'Tiny': 1, 'Small': 2, 'Medium': 3, 'Large': 4, 'Huge': 5, 'Gargantuan': 6 };
-                beasts.sort((a, b) => sizeOrder[a.size] - sizeOrder[b.size]);
+                beasts.sort((a, b) => {
+                    const result = sizeOrder[a.size] - sizeOrder[b.size];
+                    return currentSortDirection === 'asc' ? result : -result;
+                });
                 break;
         }
         
@@ -252,6 +339,10 @@ const UIManager = (function() {
             const intParsed = parseAbilityScore(beast.abilities.int);
             const wisParsed = parseAbilityScore(beast.abilities.wis);
             const chaParsed = parseAbilityScore(beast.abilities.cha);
+            
+            // Get source information
+            const sourceInfo = getSourceInfo(beast.id);
+            const sourceText = formatSourceInfo(sourceInfo);
             
             let html = `
                 <div class="statblock-container">
@@ -471,6 +562,16 @@ const UIManager = (function() {
                 });
             }
             
+            // Add source information
+            if (sourceText) {
+                html += `
+                    <div class="statblock-separator"></div>
+                    <div class="statblock-source">
+                        ${sourceText}
+                    </div>
+                `;
+            }
+            
             // Close the statblock container
             html += `</div>`;
             
@@ -494,6 +595,55 @@ const UIManager = (function() {
         elements.wildshapeStatblock.innerHTML = '';
         const statblockClone = elements.statblockDisplay.cloneNode(true);
         elements.wildshapeStatblock.appendChild(statblockClone);
+    }
+    
+    /**
+     * Helper function to convert CR to numeric value for comparisons
+     * @param {string} cr - Challenge rating (e.g., "1/4", "2")
+     * @returns {number} Numeric value of CR
+     */
+    function crToValue(cr) {
+        if (cr === '0') return 0;
+        if (cr === '1/8') return 0.125;
+        if (cr === '1/4') return 0.25;
+        if (cr === '1/2') return 0.5;
+        return parseFloat(cr);
+    }
+    
+    /**
+     * Checks if a beast's CR is within a specified range
+     * @param {Object} beast - Beast object to check
+     * @param {string} crFilter - CR filter string (e.g., "1-3", "<=2")
+     * @returns {boolean} True if beast's CR matches the filter
+     */
+    function matchesCRFilter(beast, crFilter) {
+        if (crFilter === 'all') return true;
+        
+        const beastCRValue = crToValue(beast.cr);
+        
+        if (crFilter.includes('-')) {
+            // Range filter (e.g., "1-3")
+            const [minCR, maxCR] = crFilter.split('-');
+            const minValue = crToValue(minCR.trim());
+            const maxValue = crToValue(maxCR.trim());
+            
+            return beastCRValue >= minValue && beastCRValue <= maxValue;
+        } else if (crFilter.startsWith('<=')) {
+            // Less than or equal filter (e.g., "<=2")
+            const maxCR = crFilter.substring(2).trim();
+            const maxValue = crToValue(maxCR);
+            
+            return beastCRValue <= maxValue;
+        } else if (crFilter.startsWith('>=')) {
+            // Greater than or equal filter (e.g., ">=1")
+            const minCR = crFilter.substring(2).trim();
+            const minValue = crToValue(minCR);
+            
+            return beastCRValue >= minValue;
+        } else {
+            // Exact match (e.g., "2")
+            return beast.cr === crFilter;
+        }
     }
     
     /**
@@ -1005,8 +1155,27 @@ const UIManager = (function() {
      * Shows beasts based on current filters
      */
     function applyFilters() {
-        DataManager.getFilteredBeasts(currentFilters)
+        DataManager.getAllBeasts()
             .then(beasts => {
+                // Apply name filter
+                if (currentFilters.name) {
+                    const nameLower = currentFilters.name.toLowerCase();
+                    beasts = beasts.filter(beast => 
+                        beast.name.toLowerCase().includes(nameLower)
+                    );
+                }
+                
+                // Apply CR filter
+                if (currentFilters.cr !== 'all') {
+                    beasts = beasts.filter(beast => matchesCRFilter(beast, currentFilters.cr));
+                }
+                
+                // Apply size filter
+                if (currentFilters.size !== 'all') {
+                    beasts = beasts.filter(beast => beast.size === currentFilters.size);
+                }
+                
+                // Render filtered beasts
                 renderBeastList(beasts);
             })
             .catch(error => {
@@ -1035,6 +1204,7 @@ const UIManager = (function() {
     function resetFilters() {
         currentFilters = { name: '', cr: 'all', size: 'all' };
         currentSort = 'name';
+        currentSortDirection = 'asc';
         elements.beastSearch.value = '';
         applyFilters();
     }
@@ -1062,8 +1232,18 @@ const UIManager = (function() {
         
         // Sort setter/getter
         setSort: (sort) => {
-            currentSort = sort;
+            if (currentSort === sort) {
+                // Toggle direction if clicking the same sort option
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort = sort;
+                currentSortDirection = 'asc'; // Reset direction when changing sort type
+            }
         },
-        getSort: () => currentSort
+        setSortDirection: (direction) => {
+            currentSortDirection = direction;
+        },
+        getSort: () => currentSort,
+        getSortDirection: () => currentSortDirection
     };
 })();
