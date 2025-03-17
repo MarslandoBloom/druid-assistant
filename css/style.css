@@ -144,12 +144,35 @@ body {
 }
 
 /* Conjure Animals tab styling */
-.health-tracker {
-    margin-bottom: 10px;
-    padding: 5px;
+.creature-card {
+    width: 300px;
+    margin: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 5px;
     background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.creature-card-header {
+    background-color: var(--druid-green);
+    color: white;
+    padding: 8px 12px;
+    font-weight: bold;
+    border-radius: 5px 5px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.creature-card-body {
+    padding: 12px;
+}
+
+.health-tracker {
+    margin-bottom: 10px;
+    padding: 5px;
+    border-radius: 5px;
+    background-color: #f8f9fa;
 }
 
 .health-tracker-header {
@@ -183,6 +206,104 @@ body {
     transition: width 0.3s ease;
 }
 
+.attack-controls {
+    margin-top: 10px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+/* Attack results styling */
+.attack-result {
+    margin-bottom: 12px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+}
+
+.creature-name {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 3px;
+}
+
+.attack-name {
+    font-style: italic;
+    margin-bottom: 6px;
+    color: #555;
+}
+
+.dice-roll {
+    margin-bottom: 8px;
+    font-family: monospace;
+    font-size: 1.1em;
+}
+
+.roll-result {
+    font-weight: bold;
+}
+
+.roll-result.critical {
+    color: #dc3545;
+    font-size: 1.2em;
+}
+
+.critical-tag {
+    color: #dc3545;
+    font-weight: bold;
+    margin-left: 8px;
+    border: 1px solid #dc3545;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.damage-result {
+    margin-top: 8px;
+    padding-left: 8px;
+    border-left: 3px solid var(--druid-green);
+}
+
+.damage-detail {
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.damage-total {
+    margin-top: 4px;
+}
+
+/* Summon Creatures Panel Styling */
+.creature-card {
+    width: 300px;
+    margin: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.creature-card-header {
+    background-color: var(--druid-green);
+    color: white;
+    padding: 8px 12px;
+    font-weight: bold;
+    border-radius: 5px 5px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.creature-card-body {
+    padding: 12px;
+}
+
+.attack-controls {
+    margin-top: 10px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
 /* Battlefield styling */
 .battlefield-container {
     position: relative;
@@ -193,6 +314,14 @@ body {
         linear-gradient(to right, #eee 1px, transparent 1px),
         linear-gradient(to bottom, #eee 1px, transparent 1px);
     background-size: 40px 40px;
+}
+
+.selection-box {
+    position: absolute;
+    border: 2px dashed var(--druid-green);
+    background-color: rgba(25, 135, 84, 0.1);
+    pointer-events: none;
+    z-index: 10;
 }
 
 .token {
@@ -210,12 +339,37 @@ body {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
+.token::after {
+    content: attr(data-hp);
+    position: absolute;
+    bottom: -18px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    color: #555;
+    font-weight: normal;
+}
+
 .token-friendly {
     background-color: var(--druid-green);
 }
 
 .token-enemy {
     background-color: #dc3545;
+}
+
+.token-selected {
+    border: 3px solid #ffc107;
+    box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+}
+
+.battlefield-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
 }
 
 /* Dropdown header styling */

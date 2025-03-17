@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', function() {
         conjureButton: document.getElementById('conjureButton'),
         
         // Battlefield
-        toggleBattlefield: document.getElementById('toggleBattlefield'),
         battlefield: document.getElementById('battlefield'),
         
         // Data management
@@ -153,23 +152,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reset Conjure Animals button
         document.getElementById('resetConjure').addEventListener('click', function() {
-            document.getElementById('conjuredBeastInfo').innerHTML = `
-                <div class="text-center p-3">
-                    <p class="text-muted">No beast summoned</p>
-                </div>
-            `;
-            document.getElementById('healthTrackers').innerHTML = '';
-            document.getElementById('attackOptions').innerHTML = `
-                <div class="text-center p-3">
-                    <p class="text-muted">Select a beast to see attack options</p>
-                </div>
-            `;
-            document.getElementById('combatResults').innerHTML = `
-                <div class="text-center p-5">
-                    <h3>No combat results</h3>
-                    <p class="text-muted">Make an attack to see results</p>
-                </div>
-            `;
+            // Use the ConjureAnimalsManager to reset the tab
+            ConjureAnimalsManager.init();
         });
         
         // Beast search
@@ -327,8 +311,8 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.conjureButton.addEventListener('click', function() {
             const currentBeast = UIManager.getCurrentBeast();
             if (currentBeast) {
-                // Render the conjured beast
-                UIManager.renderConjuredBeast(currentBeast);
+                // Use the ConjureAnimalsManager to summon creatures
+                ConjureAnimalsManager.summonCreatures(currentBeast);
                 
                 // Switch to conjure tab
                 const conjureTabEl = new bootstrap.Tab(elements.conjureTab);
@@ -336,15 +320,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Toggle battlefield visibility
-        elements.toggleBattlefield.addEventListener('click', function() {
-            if (elements.battlefield.style.display === 'none') {
-                elements.battlefield.style.display = 'block';
-                initBattlefield();
-            } else {
-                elements.battlefield.style.display = 'none';
-            }
-        });
+        // The toggleBattlefield button has been removed in the updated UI
+        // The battlefield is now always visible
         
         // Upload data button
         elements.uploadDataBtn.addEventListener('click', function() {
