@@ -15,6 +15,9 @@ A web-based assistant for D&D 5e Druids to manage wildshape transformations and 
   - Tracks health for each summoned creature
   - Simulates attack rolls with advantage/disadvantage options
   - Calculates hit probability and damage output
+  - Independent attack selection for each summoned creature
+  - Group attack and damage rolls respect individual attack selections
+  - Separate "Release Summons" and "Reset Rolls" functionality
 - **Favorites System**: Save your most-used beasts for quick access
 - **Data Management**: Import custom beast data from markdown files
 - **Offline Capability**: Works without internet connection after initial load
@@ -53,8 +56,12 @@ Simply visit [The Druid's Assistant](https://your-url-here.com) in your web brow
 1. Select a beast from the Statblock tab.
 2. Click "Conjure Animals" to summon the appropriate number based on CR.
 3. Use health trackers to manage damage to your summoned creatures.
-4. Configure attack options and roll against target AC.
-5. View detailed attack results for all creatures at once.
+4. Configure attack options for each summoned creature individually.
+5. Select specific creatures using the selection system.
+6. Use "Group Attack" to roll attacks for all selected creatures at once.
+7. Use "Group Damage" to calculate total damage for all successful hits.
+8. Use "Reset Rolls" to clear attack and damage displays without removing creatures.
+9. Use "Release Summons" when you're done with the current summoned creatures.
 
 ### Data Management
 1. Click "Manage Data" in the footer.
@@ -106,12 +113,21 @@ druids-assistant/
 ├── css/
 │   └── style.css             # Custom styles
 ├── js/
-│   ├── app.js                # Main application logic
-│   ├── data.js               # Data management
-│   └── ui.js                 # UI rendering
+│   ├── app.js                # Main application logic and event handling
+│   ├── data.js               # Data management and persistence
+│   └── ui.js                 # UI rendering and state management
 ├── images/                   # Icons and images
 └── manifest.json             # PWA manifest
 ```
+
+## Recent Updates
+
+### March 2025
+- Added independent attack selection for each summoned creature
+- Improved group attack and damage calculations to use individual attack selections
+- Split reset functionality into "Release Summons" and "Reset Rolls" buttons
+- Enhanced battlefield visualization with improved creature selection
+- Optimized UI layout for better usability on various screen sizes
 
 ## License
 
