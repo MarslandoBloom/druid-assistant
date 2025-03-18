@@ -140,6 +140,19 @@ document.addEventListener('DOMContentLoaded', function() {
      * Sets up all event listeners
      */
     function setupEventListeners() {
+        // Collapsible filter headers
+        const collapsibleHeaders = document.querySelectorAll('.card-header.collapsible');
+        collapsibleHeaders.forEach(header => {
+            header.addEventListener('click', function() {
+                this.classList.toggle('collapsed');
+                const filterId = this.dataset.filter;
+                const content = document.getElementById(`${filterId}-filter-content`);
+                if (content) {
+                    content.classList.toggle('collapsed');
+                }
+            });
+        });
+        
         // Reset Wildshape button
         document.getElementById('resetWildshape').addEventListener('click', function() {
             document.getElementById('wildshapeStatblock').innerHTML = `

@@ -31,6 +31,26 @@ body {
     overflow-y: auto;
 }
 
+/* Collapsible filter styling */
+.card-header.collapsible {
+    cursor: pointer;
+}
+
+.card-header.collapsible:after {
+    content: "▼";
+    float: right;
+    font-size: 0.8rem;
+    transition: transform 0.3s;
+}
+
+.card-header.collapsible.collapsed:after {
+    transform: rotate(-90deg);
+}
+
+.filter-content.collapsed {
+    display: none;
+}
+
 .list-group-item.active {
     background-color: var(--druid-green);
     border-color: var(--druid-green);
@@ -49,6 +69,23 @@ body {
     margin: 10px 0;
     padding: 5px 10px;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Compact statblock for conjure animals tab */
+.compact-statblock {
+    font-family: 'Noto Serif', 'Palatino Linotype', serif;
+    background-color: var(--statblock-background);
+    border: 1px solid var(--statblock-border-color);
+    border-radius: 5px;
+    margin: 5px 0;
+    padding: 5px 8px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+    font-size: 0.85rem;
+    min-height: calc(100vh - 300px);
+    height: auto;
+    overflow-y: visible;
+    /* Make sure it's tall enough to display all content */
+    overflow-x: hidden;
 }
 
 .statblock-name {
@@ -275,12 +312,15 @@ body {
 
 /* Summon Creatures Panel Styling */
 .creature-card {
-    width: 300px;
+    width: 100%;
+    max-width: 300px;
+    min-width: 250px;
     margin: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 5px;
     background-color: white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    flex-grow: 1;
 }
 
 .creature-card-header {
@@ -377,6 +417,15 @@ body {
     font-weight: bold;
     color: var(--druid-green);
     padding: 8px 16px;
+}
+
+/* Creatures Container Styling */
+#summonedCreaturesContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-start;
+    align-items: flex-start;
 }
 
 /* Responsive adjustments */

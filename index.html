@@ -46,10 +46,10 @@
                         
                         <!-- CR Range Filter -->
                         <div class="card mb-3">
-                            <div class="card-header bg-success text-white">
+                            <div class="card-header bg-success text-white collapsible collapsed" data-filter="cr">
                                 <h6 class="mb-0">CR Filter</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body filter-content collapsed" id="cr-filter-content">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="enableCRRange">
@@ -80,10 +80,10 @@
                         
                         <!-- Size Filter -->
                         <div class="card mb-3">
-                            <div class="card-header bg-success text-white">
+                            <div class="card-header bg-success text-white collapsible collapsed" data-filter="size">
                                 <h6 class="mb-0">Size Filter</h6>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body filter-content collapsed" id="size-filter-content">
                                 <div class="d-flex gap-2 flex-wrap">
                                     <button class="btn btn-sm btn-outline-success size-filter" data-size="all">All Sizes</button>
                                     <button class="btn btn-sm btn-outline-success size-filter" data-size="Tiny">Tiny</button>
@@ -169,7 +169,18 @@
                     <div class="card mb-3">
                         <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Summoned Creatures</h5>
-                            <button class="btn btn-light btn-sm" id="resetConjure">Reset</button>
+                            <div class="d-flex">
+                                <div class="input-group input-group-sm me-1" style="max-width: 400px;">
+                                    <select id="group-roll-type-selector" class="form-select form-select-sm" style="max-width: 120px;">
+                                        <option value="normal">Normal</option>
+                                        <option value="advantage">Advantage</option>
+                                        <option value="disadvantage">Disadvantage</option>
+                                    </select>
+                                    <button class="btn btn-light btn-sm" id="roll-all-selected-attacks">Roll Attacks</button>
+                                </div>
+                                <button class="btn btn-light btn-sm me-1" id="roll-all-selected-damage">Roll Damage</button>
+                                <button class="btn btn-light btn-sm" id="resetConjure">Reset</button>
+                            </div>
                         </div>
                         <div class="card-body">
                             <div id="conjuredBeastInfo">
@@ -177,9 +188,21 @@
                                     <p class="text-muted">No beast summoned</p>
                                 </div>
                             </div>
-                            <div id="summonedCreaturesContainer" class="d-flex flex-wrap mt-3">
-                                <!-- Summoned creatures with integrated health and attacks will be displayed here -->
+                            <div class="row">
+                                <!-- Left column: Summoned creature tiles -->
+                                <div class="col-md-9">
+                                    <div id="summonedCreaturesContainer" class="d-flex flex-wrap">
+                                        <!-- Summoned creatures with integrated health and attacks will be displayed here -->
+                                    </div>
+                                </div>
+                                <!-- Right column: Statblock -->
+                                <div class="col-md-3">
+                                    <div id="conjuredBeastStatblock" class="compact-statblock mb-3" style="display: none;">
+                                        <!-- Compact statblock will be displayed here -->
+                                    </div>
+                                </div>
                             </div>
+                            <!-- Group attack results removed, all results go to individual creature tiles -->
                         </div>
                     </div>
                     

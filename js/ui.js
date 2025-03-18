@@ -1303,6 +1303,82 @@ const UIManager = (function() {
         applyFilters();
     }
     
+    /**
+     * Renders a compact statblock for the Conjure Animals tab
+     * @param {Object} beast - Beast object to render
+     * @param {HTMLElement} container - Container to render the statblock in
+     */
+    function renderCompactStatblock(beast, container) {
+        if (!beast || !container) return;
+        
+        try {
+            // Create a simplified statblock
+            let html = `
+                <h4 class="statblock-name">${beast.name}</h4>
+                <p><em>${beast.size} ${beast.type}, ${beast.alignment}</em></p>
+                <hr class="statblock-separator-short">
+                
+                <p><strong>Armor Class:</strong> ${beast.ac}</p>
+                <p><strong>Hit Points:</strong> ${beast.hp}</p>
+                <p><strong>Speed:</strong> ${beast.speed}</p>
+                
+                <hr class="statblock-separator-short">
+            `;
+            
+            // Add ability scores in a more compact format
+            if (beast.abilities) {
+                const strParsed = parseAbilityScore(beast.abilities.str);
+                const dexParsed = parseAbilityScore(beast.abilities.dex);
+                const conParsed = parseAbilityScore(beast.abilities.con);
+                const intParsed = parseAbilityScore(beast.abilities.int);
+                const wisParsed = parseAbilityScore(beast.abilities.wis);
+                const chaParsed = parseAbilityScore(beast.abilities.cha);
+                
+                html += `
+                    <div class="d-flex flex-wrap justify-content-between">
+                        <div class="me-2"><strong>STR:</strong> ${strParsed.score} (${strParsed.mod})</div>
+                        <div class="me-2"><strong>DEX:</strong> ${dexParsed.score} (${dexParsed.mod})</div>
+                        <div class="me-2"><strong>CON:</strong> ${conParsed.score} (${conParsed.mod})</div>
+                        <div class="me-2"><strong>INT:</strong> ${intParsed.score} (${intParsed.mod})</div>
+                        <div class="me-2"><strong>WIS:</strong> ${wisParsed.score} (${wisParsed.mod})</div>
+                        <div><strong>CHA:</strong> ${chaParsed.score} (${chaParsed.mod})</div>
+                    </div>
+                    
+                    <hr class="statblock-separator-short">
+                `;
+            }
+            
+            // Add basic info
+            html += `<p><strong>Senses:</strong> ${beast.senses}</p>`;
+            html += `<p><strong>Challenge:</strong> ${beast.cr} (${beast.xp})</p>`;
+            
+            // Add traits (limited)
+            if (beast.traits && beast.traits.length > 0) {
+                html += `<hr class="statblock-separator-short">`;
+                
+                beast.traits.forEach(trait => {
+                    html += `<p><strong><em>${trait.name}.</em></strong> ${trait.desc}</p>`;
+                });
+            }
+            
+            // Add actions (just headers for compactness)
+            if (beast.actions && beast.actions.length > 0) {
+                html += `<hr class="statblock-separator-short">`;
+                html += `<p class="statblock-action-title">Actions</p>`;
+                
+                beast.actions.forEach(action => {
+                    html += `<p><strong><em>${action.name}.</em></strong> ${action.desc}</p>`;
+                });
+            }
+            
+            // Set the container content
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('Error rendering compact statblock:', error);
+            container.innerHTML = `<div class="alert alert-danger">Error displaying statblock</div>`;
+        }
+    }
+    
     // Public API
     return {
         renderBeastList,
@@ -1310,6 +1386,7 @@ const UIManager = (function() {
         renderStatblock,
         renderWildshapeStatblock,
         renderConjuredBeast,
+        renderCompactStatblock,
         toggleFavorite,
         applyFilters,
         showOnlyFavorites,

@@ -26,6 +26,21 @@ const ConjureAnimalsManager = (function() {
      * Sets up event handlers for the conjure animals tab
      */
     function setupEventHandlers() {
+        // Group attack and damage buttons
+        const rollAllAttacksBtn = document.getElementById('roll-all-selected-attacks');
+        if (rollAllAttacksBtn) {
+            rollAllAttacksBtn.addEventListener('click', function() {
+                rollAttacksForSelectedCreatures();
+            });
+        }
+        
+        const rollAllDamageBtn = document.getElementById('roll-all-selected-damage');
+        if (rollAllDamageBtn) {
+            rollAllDamageBtn.addEventListener('click', function() {
+                rollDamageForSelectedCreatures();
+            });
+        }
+        
         // Reset button
         const resetButton = document.getElementById('resetConjure');
         if (resetButton) {
@@ -105,6 +120,15 @@ const ConjureAnimalsManager = (function() {
             </div>
         `;
         document.getElementById('summonedCreaturesContainer').innerHTML = '';
+        
+        // No group results to clear anymore - all results are in creature tiles
+        
+        // Hide statblock
+        const statblockContainer = document.getElementById('conjuredBeastStatblock');
+        if (statblockContainer) {
+            statblockContainer.style.display = 'none';
+            statblockContainer.innerHTML = '';
+        }
         
         // Clear battlefield
         const battlefield = document.querySelector('.battlefield-container');
@@ -207,6 +231,13 @@ const ConjureAnimalsManager = (function() {
             </div>
         `;
         
+        // Render compact statblock
+        const statblockContainer = document.getElementById('conjuredBeastStatblock');
+        if (statblockContainer) {
+            statblockContainer.style.display = 'block';
+            UIManager.renderCompactStatblock(beast, statblockContainer);
+        }
+        
         // Render creature cards
         renderCreatureCards();
         
@@ -294,11 +325,34 @@ const ConjureAnimalsManager = (function() {
         
         // Determine if this creature has multiple attack options
         const hasMultipleAttacks = creature.attackActions.length > 1;
+        // Add useMultiAttack property if not present (default to false)
+        if (creature.useMultiAttack === undefined) {
+            creature.useMultiAttack = false;
+        }
         
         let attackOptionsHtml = '';
         if (creature.attackActions.length > 0) {
+            // Add multi-attack toggle if creature has multiple attacks or Multiattack trait
+            const hasMultiattackAbility = creature.traits && creature.traits.some(trait => 
+                trait.name.toLowerCase() === 'multiattack' || 
+                (trait.desc && trait.desc.toLowerCase().includes('multiattack'))
+            ) || creature.actions && creature.actions.some(action => 
+                action.name.toLowerCase() === 'multiattack' || 
+                (action.desc && action.desc.toLowerCase().includes('makes'))
+            );
+            
+            const multiattackToggle = hasMultiattackAbility || hasMultipleAttacks ? `
+                <div class="form-check mb-2">
+                    <input class="form-check-input use-multiattack" type="checkbox" id="use-multiattack-${index}" ${creature.useMultiAttack ? 'checked' : ''}>
+                    <label class="form-check-label" for="use-multiattack-${index}">
+                        Use Multiple Attacks
+                    </label>
+                </div>
+            ` : '';
+            
             attackOptionsHtml = `
                 <div class="attack-controls">
+                    ${multiattackToggle}
                     <div class="mb-2">
                         <label class="form-label">Attack Type</label>
                         <select class="form-select form-select-sm attack-select">
@@ -321,13 +375,11 @@ const ConjureAnimalsManager = (function() {
                         </div>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
-                        <button class="btn btn-sm btn-success roll-single-attack-btn">Roll Attack</button>
-                        ${hasMultipleAttacks ? 
-                            `<button class="btn btn-sm btn-primary roll-all-attacks-btn">Roll All Attacks</button>` : 
-                            ''}
+                        <button class="btn btn-sm btn-success roll-single-attack-btn">Roll Attack(s)</button>
+
                         <button class="btn btn-sm btn-danger roll-damage-btn">Roll Damage</button>
                     </div>
-                    <div class="attack-results mt-2" style="display: none;">
+                    <div class="attack-results mt-2">
                         <!-- Attack results will be displayed here -->
                     </div>
                 </div>
@@ -398,6 +450,14 @@ const ConjureAnimalsManager = (function() {
             });
         }
         
+        // Toggle multiattack
+        const multiattackCheckbox = cardDiv.querySelector('.use-multiattack');
+        if (multiattackCheckbox) {
+            multiattackCheckbox.addEventListener('change', () => {
+                summonedCreatures[index].useMultiAttack = multiattackCheckbox.checked;
+            });
+        }
+        
         // Damage button
         const damageBtn = cardDiv.querySelector('.damage-btn');
         if (damageBtn) {
@@ -424,38 +484,34 @@ const ConjureAnimalsManager = (function() {
             });
         }
         
-        // Roll single attack button
+        // Roll attack button - handles single or multiple attacks based on toggle
         const rollSingleBtn = cardDiv.querySelector('.roll-single-attack-btn');
         if (rollSingleBtn) {
             rollSingleBtn.addEventListener('click', () => {
                 const attackSelect = cardDiv.querySelector('.attack-select');
                 const attackIndex = parseInt(attackSelect.value);
                 const rollType = cardDiv.querySelector('input[name^="roll-type"]:checked').value;
+                const useMultiAttack = creature.useMultiAttack;
+                const resultsContainer = cardDiv.querySelector('.attack-results');
                 
-                const attack = creature.attackActions[attackIndex];
-                const result = rollAttack(attack, creature, rollType);
-                
-                displayAttackResult(cardDiv.querySelector('.attack-results'), result);
+                if (useMultiAttack && creature.attackActions.length > 1) {
+                    // Use all attacks
+                    const results = [];
+                    creature.attackActions.forEach(attack => {
+                        const result = rollAttack(attack, creature, rollType);
+                        results.push(result);
+                    });
+                    displayAttackResults(resultsContainer, results);
+                } else {
+                    // Use just the selected attack
+                    const attack = creature.attackActions[attackIndex];
+                    const result = rollAttack(attack, creature, rollType);
+                    displayAttackResult(resultsContainer, result);
+                }
             });
         }
         
-        // Roll all attacks button
-        const rollAllBtn = cardDiv.querySelector('.roll-all-attacks-btn');
-        if (rollAllBtn) {
-            rollAllBtn.addEventListener('click', () => {
-                const rollType = cardDiv.querySelector('input[name^="roll-type"]:checked').value;
-                const results = [];
-                
-                // Loop through all attack actions and generate results for each
-                creature.attackActions.forEach(attack => {
-                    const result = rollAttack(attack, creature, rollType);
-                    results.push(result);
-                });
-                
-                // Display all results
-                displayAttackResults(cardDiv.querySelector('.attack-results'), results);
-            });
-        }
+
         
         // Roll damage button
         const rollDamageBtn = cardDiv.querySelector('.roll-damage-btn');
@@ -463,13 +519,34 @@ const ConjureAnimalsManager = (function() {
             rollDamageBtn.addEventListener('click', () => {
                 const attackSelect = cardDiv.querySelector('.attack-select');
                 const attackIndex = parseInt(attackSelect.value);
-                const attack = creature.attackActions[attackIndex];
+                const attackResultsContainer = cardDiv.querySelector('.attack-results');
                 
-                // Roll damage for the selected attack
-                const damageResults = rollDamage(attack, creature, true);
-                
-                // Display damage results
-                displayDamageResults(cardDiv.querySelector('.attack-results'), [damageResults]);
+                if (creature.useMultiAttack && creature.attackActions.length > 1) {
+                    // Roll damage for all attacks
+                    const damageResults = [];
+                    creature.attackActions.forEach(attack => {
+                        const damageResult = rollDamage(attack, creature, false);
+                        if (damageResult) {
+                            damageResults.push(damageResult);
+                        }
+                    });
+                    
+                    // Display damage results
+                    if (damageResults.length > 0) {
+                        attackResultsContainer.style.display = 'block';
+                        displayDamageResults(attackResultsContainer, damageResults);
+                    }
+                } else {
+                    // Roll damage for the selected attack
+                    const attack = creature.attackActions[attackIndex];
+                    const damageResult = rollDamage(attack, creature, false);
+                    
+                    // Display damage results
+                    if (damageResult) {
+                        attackResultsContainer.style.display = 'block';
+                        displayDamageResults(attackResultsContainer, [damageResult]);
+                    }
+                }
             });
         }
     }
@@ -622,16 +699,50 @@ const ConjureAnimalsManager = (function() {
      * @returns {Object} Damage result object
      */
     function calculateDamage(attack, isCritical) {
-        if (!attack.damageExpr) return null;
+        // Check for missing damage expression and try to extract it from description if possible
+        if (!attack.damageExpr || attack.damageExpr.trim() === '') {
+            console.log('Damage expression missing, trying to extract from description:', attack);
+            
+            if (attack.desc) {
+                // Extract damage info from the description
+                const damageMatch = attack.desc.match(/Hit:\s*(\d+)\s*\(([^\)]+)\)\s*([a-z]+)\s*damage/);
+                if (damageMatch) {
+                    attack.damageExpr = damageMatch[2];
+                    attack.damageType = damageMatch[3];
+                    console.log('Extracted damage info:', attack.damageExpr, attack.damageType);
+                }
+            }
+        }
+        
+        // If we still don't have a damage expression, we can't calculate damage
+        if (!attack.damageExpr) {
+            console.error('No damage expression available for attack:', attack.name);
+            return null;
+        }
         
         // Parse the damage expression (e.g., "2d6+3")
         const damageParts = parseDamageExpression(attack.damageExpr);
+        console.log('Parsed damage parts:', damageParts);
+        
         const critMultiplier = isCritical ? 2 : 1;
         
         // Roll damage dice
         let diceTotal = 0;
         let rolls = [];
         
+        // Handle fixed damage (no dice)
+        if (damageParts.diceCount === 0) {
+            return {
+                attackName: attack.name || 'Attack',
+                rolls: [],
+                modifier: damageParts.modifier,
+                total: damageParts.modifier,
+                type: attack.damageType || 'damage',
+                isCritical: isCritical
+            };
+        }
+        
+        // Roll dice
         for (let i = 0; i < damageParts.diceCount * critMultiplier; i++) {
             const roll = Math.floor(Math.random() * damageParts.diceFaces) + 1;
             rolls.push(roll);
@@ -642,11 +753,11 @@ const ConjureAnimalsManager = (function() {
         const damageTotal = diceTotal + damageParts.modifier;
         
         return {
-            attackName: attack.name,
+            attackName: attack.name || 'Attack',
             rolls: rolls,
             modifier: damageParts.modifier,
             total: damageTotal,
-            type: attack.damageType,
+            type: attack.damageType || 'damage',
             isCritical: isCritical
         };
     }
@@ -659,7 +770,88 @@ const ConjureAnimalsManager = (function() {
      * @returns {Object} Damage result object
      */
     function rollDamage(attack, creature, forceCrit = false) {
-        return calculateDamage(attack, forceCrit);
+        if (!attack) {
+            console.error('Invalid attack object');
+            return null;
+        }
+        
+        // Debug logging
+        console.log('Rolling damage for:', attack.name);
+        
+        // If damageExpr is not set or empty, try to extract it from the description
+        if (!attack.damageExpr || attack.damageExpr.trim() === '') {
+            console.log('No damageExpr found, trying to extract from description');
+            
+            if (attack.desc) {
+                // Try different regex patterns to extract damage info
+                
+                // Pattern 1: "Hit: X (YdZ+W) type damage"
+                let damageMatch = attack.desc.match(/Hit:\s*(\d+)\s*\(([^\)]+)\)\s*([a-z]+)\s*damage/);
+                if (damageMatch) {
+                    attack.damageExpr = damageMatch[2];
+                    attack.damageType = damageMatch[3];
+                    console.log('Extracted from pattern 1:', attack.damageExpr, attack.damageType);
+                } else {
+                    // Pattern 2: Just "X (YdZ+W)"
+                    damageMatch = attack.desc.match(/(\d+)\s*\(([^\)]+)\)/);
+                    if (damageMatch) {
+                        attack.damageExpr = damageMatch[2];
+                        // Try to extract damage type
+                        const typeMatch = attack.desc.match(/([a-z]+)\s*damage/);
+                        attack.damageType = typeMatch ? typeMatch[1] : 'damage';
+                        console.log('Extracted from pattern 2:', attack.damageExpr, attack.damageType);
+                    }
+                }
+            }
+        }
+        
+        // If we still don't have a damage expression, create a default
+        if (!attack.damageExpr || attack.damageExpr.trim() === '') {
+            // Look for a simple damage number in the description
+            if (attack.desc) {
+                const simpleMatch = attack.desc.match(/(\d+)\s*([a-z]+)\s*damage/);
+                if (simpleMatch) {
+                    // Just use the number directly as modifier
+                    attack.damageExpr = simpleMatch[1];
+                    attack.damageType = simpleMatch[2];
+                    console.log('Using simple damage number:', attack.damageExpr, attack.damageType);
+                } else {
+                    // Fall back to a simple 1d6
+                    attack.damageExpr = '1d6';
+                    attack.damageType = 'damage';
+                    console.log('Using fallback damage: 1d6');
+                }
+            } else {
+                // Complete fallback
+                attack.damageExpr = '1d6';
+                attack.damageType = 'damage';
+                console.log('No description, using fallback: 1d6');
+            }
+        }
+        
+        console.log('Final damage expression:', attack.damageExpr);
+        
+        // Now calculate the damage
+        const result = calculateDamage(attack, forceCrit);
+        
+        // If calculation succeeded, update name and type
+        if (result) {
+            result.attackName = attack.name || 'Attack';
+            result.type = attack.damageType || 'damage';
+            console.log('Calculated damage:', result);
+            return result;
+        } else {
+            console.error('Failed to calculate damage');
+            // Return a basic fallback result
+            return {
+                attackName: attack.name || 'Attack',
+                rolls: [Math.floor(Math.random() * 6) + 1],
+                modifier: 0,
+                total: Math.floor(Math.random() * 6) + 1,
+                type: attack.damageType || 'damage',
+                isCritical: forceCrit
+            };
+        }
     }
     
     /**
@@ -668,26 +860,59 @@ const ConjureAnimalsManager = (function() {
      * @returns {Object} Object with dice count, faces, and modifier
      */
     function parseDamageExpression(expr) {
+        // Default values
         const result = {
             diceCount: 1,
             diceFaces: 6,
             modifier: 0
         };
         
-        // Match pattern like "2d6+3" or "1d10" or "3d8-1"
-        const diceMatch = expr.match(/(\d+)d(\d+)(?:([-+])(\d+))?/);
+        if (!expr) return result;
         
-        if (diceMatch) {
-            result.diceCount = parseInt(diceMatch[1]);
-            result.diceFaces = parseInt(diceMatch[2]);
+        // Try to handle various formats of damage expressions
+        
+        // Format: "2d6+3" or "1d10" or "3d8-1"
+        const standardMatch = expr.match(/(\d+)d(\d+)(?:([-+])(\d+))?/);
+        
+        if (standardMatch) {
+            result.diceCount = parseInt(standardMatch[1]);
+            result.diceFaces = parseInt(standardMatch[2]);
             
             // Handle modifier
-            if (diceMatch[3] && diceMatch[4]) {
-                const modValue = parseInt(diceMatch[4]);
-                result.modifier = diceMatch[3] === '+' ? modValue : -modValue;
+            if (standardMatch[3] && standardMatch[4]) {
+                const modValue = parseInt(standardMatch[4]);
+                result.modifier = standardMatch[3] === '+' ? modValue : -modValue;
             }
+            
+            return result;
         }
         
+        // Format: "2d6 + 3" or "1d10 - 1" (with spaces)
+        const spacedMatch = expr.match(/(\d+)\s*d\s*(\d+)\s*(?:([-+])\s*(\d+))?/);
+        
+        if (spacedMatch) {
+            result.diceCount = parseInt(spacedMatch[1]);
+            result.diceFaces = parseInt(spacedMatch[2]);
+            
+            // Handle modifier
+            if (spacedMatch[3] && spacedMatch[4]) {
+                const modValue = parseInt(spacedMatch[4]);
+                result.modifier = spacedMatch[3] === '+' ? modValue : -modValue;
+            }
+            
+            return result;
+        }
+        
+        // Just a number (e.g., "5")
+        const justNumber = expr.match(/^\s*(\d+)\s*$/);
+        if (justNumber) {
+            result.diceCount = 0;
+            result.diceFaces = 0;
+            result.modifier = parseInt(justNumber[1]);
+            return result;
+        }
+        
+        console.warn('Could not parse damage expression:', expr);
         return result;
     }
     
@@ -697,7 +922,7 @@ const ConjureAnimalsManager = (function() {
      * @param {Object} result - Attack result object
      */
     function displayAttackResult(container, result) {
-        container.style.display = 'block';
+        if (!container) return;
         container.innerHTML = '';
         
         const resultDiv = document.createElement('div');
@@ -764,7 +989,7 @@ const ConjureAnimalsManager = (function() {
      * @param {Array} results - Array of attack result objects
      */
     function displayAttackResults(container, results) {
-        container.style.display = 'block';
+        if (!container) return;
         container.innerHTML = '';
         
         results.forEach(result => {
@@ -778,7 +1003,7 @@ const ConjureAnimalsManager = (function() {
      * @param {Array} damageResults - Array of damage result objects
      */
     function displayDamageResults(container, damageResults) {
-        container.style.display = 'block';
+        if (!container) return;
         container.innerHTML = '';
         
         damageResults.forEach(result => {
@@ -1149,6 +1374,114 @@ const ConjureAnimalsManager = (function() {
     function clearEnemyTokens() {
         enemyTokens = [];
         renderBattlefield();
+    }
+    
+    /**
+     * Rolls attacks for all selected creatures
+     */
+    function rollAttacksForSelectedCreatures() {
+        // Get selected creatures
+        const selectedCreatures = summonedCreatures.filter(creature => creature.selected);
+        
+        if (selectedCreatures.length === 0) {
+            alert('No creatures selected. Please select at least one creature.');
+            return;
+        }
+        
+        // Get roll type from the UI
+        const rollTypeSelector = document.getElementById('group-roll-type-selector');
+        const rollType = rollTypeSelector ? rollTypeSelector.value : 'normal';
+        
+        // Process each selected creature - results displayed ONLY in creature tiles
+        selectedCreatures.forEach(creature => {
+            // Get the creature's tile
+            const creatureTile = document.querySelector(`.creature-card[data-index="${creature.index}"]`);
+            if (!creatureTile) return;
+            
+            const attackResultsContainer = creatureTile.querySelector('.attack-results');
+            if (!attackResultsContainer) return;
+            
+            // Clear previous results
+            attackResultsContainer.innerHTML = '';
+            
+            // Roll based on multiattack setting
+            if (creature.attackActions.length > 0) {
+                if (creature.useMultiAttack && creature.attackActions.length > 1) {
+                    // Use all attacks
+                    const results = [];
+                    creature.attackActions.forEach(attack => {
+                        const result = rollAttack(attack, creature, rollType);
+                        results.push(result);
+                    });
+                    displayAttackResults(attackResultsContainer, results);
+                } else {
+                    // Use just the first attack
+                    const attack = creature.attackActions[0];
+                    const result = rollAttack(attack, creature, rollType);
+                    displayAttackResult(attackResultsContainer, result);
+                }
+            } else {
+                attackResultsContainer.innerHTML = '<p>No attack actions available.</p>';
+            }
+        });
+    }
+    
+    /**
+     * Rolls damage for all selected creatures
+     */
+    function rollDamageForSelectedCreatures() {
+        // Get selected creatures
+        const selectedCreatures = summonedCreatures.filter(creature => creature.selected);
+        
+        if (selectedCreatures.length === 0) {
+            alert('No creatures selected. Please select at least one creature.');
+            return;
+        }
+        
+        // Process each selected creature - results displayed ONLY in creature tiles
+        selectedCreatures.forEach(creature => {
+            // Get the creature's tile
+            const creatureTile = document.querySelector(`.creature-card[data-index="${creature.index}"]`);
+            if (!creatureTile) return;
+            
+            const attackResultsContainer = creatureTile.querySelector('.attack-results');
+            if (!attackResultsContainer) return;
+            
+            // Clear previous results
+            attackResultsContainer.innerHTML = '';
+            
+            // Roll based on multiattack setting
+            if (creature.attackActions.length > 0) {
+                let damageResults = [];
+                
+                if (creature.useMultiAttack && creature.attackActions.length > 1) {
+                    // Roll damage for all attacks
+                    creature.attackActions.forEach(attack => {
+                        const damageResult = rollDamage(attack, creature, false);
+                        if (damageResult) {
+                            damageResults.push(damageResult);
+                        }
+                    });
+                } else {
+                    // Roll damage for just the first attack
+                    const attack = creature.attackActions[0];
+                    const damageResult = rollDamage(attack, creature, false);
+                    
+                    if (damageResult) {
+                        damageResults.push(damageResult);
+                    }
+                }
+                
+                // Display results in creature tile
+                if (damageResults.length > 0) {
+                    displayDamageResults(attackResultsContainer, damageResults);
+                } else {
+                    attackResultsContainer.innerHTML = '<p>Could not calculate damage.</p>';
+                }
+            } else {
+                attackResultsContainer.innerHTML = '<p>No attack actions available.</p>';
+            }
+        });
     }
     
     // Public API
