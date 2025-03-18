@@ -225,9 +225,8 @@ const ConjureAnimalsManager = (function() {
         
         // Update info panel
         document.getElementById('conjuredBeastInfo').innerHTML = `
-            <div class="alert alert-success">
-                <h5>Summoned: ${numCreatures}× ${beast.name}</h5>
-                <p><strong>CR:</strong> ${beast.cr} | <strong>HP:</strong> ${beast.hp.split(' ')[0]} each</p>
+            <div class="alert alert-success py-2">
+                <span class="fw-bold">Summoned: ${numCreatures}× ${beast.name} - <strong>CR:</strong> ${beast.cr} | <strong>HP:</strong> ${beast.hp.split(' ')[0]} each</span>
             </div>
         `;
         
@@ -253,9 +252,30 @@ const ConjureAnimalsManager = (function() {
     function parseAttackActions(beast) {
         const attackActions = [];
         
+        // First check for a multiattack action
+        let hasMultiattack = false;
+        let multiattackInfo = null;
+        
+        if (beast.actions) {
+            const multiattack = beast.actions.find(action => 
+                action.name && action.name.toLowerCase() === 'multiattack'
+            );
+            
+            if (multiattack) {
+                hasMultiattack = true;
+                multiattackInfo = multiattack;
+                // Don't add the multiattack itself to attack actions
+            }
+        }
+        
         // Look through actions for attacks
         if (beast.actions) {
             beast.actions.forEach(action => {
+                // Skip the multiattack action, as we handle it separately
+                if (action.name && action.name.toLowerCase() === 'multiattack') {
+                    return;
+                }
+                
                 // Check if this is an attack action (contains "to hit" in description)
                 if (action.desc && action.desc.includes('to hit')) {
                     // Extract attack bonus
@@ -280,8 +300,31 @@ const ConjureAnimalsManager = (function() {
                         desc: action.desc,
                         attackBonus: attackBonus,
                         damageExpr: damageExpr,
-                        damageType: damageType
+                        damageType: damageType,
+                        isPartOfMultiattack: hasMultiattack
                     });
+                }
+            });
+        }
+        
+        // If beast has multiattack, mark the actions that are part of it
+        if (hasMultiattack && multiattackInfo && multiattackInfo.desc) {
+            // Try to parse the multiattack description to determine which attacks are included
+            const desc = multiattackInfo.desc.toLowerCase();
+            
+            attackActions.forEach(attack => {
+                const attackName = attack.name.toLowerCase();
+                // If the attack name is mentioned in the multiattack description, mark it
+                if (desc.includes(attackName)) {
+                    attack.isPartOfMultiattack = true;
+                    
+                    // Try to determine how many of this attack are made in a multiattack
+                    const countMatch = desc.match(new RegExp(`(\\d+)\\s+${attackName}|${attackName}\\s+attacks?`));
+                    if (countMatch) {
+                        attack.multiattackCount = countMatch[1] ? parseInt(countMatch[1]) : 1;
+                    } else {
+                        attack.multiattackCount = 1; // Default to 1 if we can't determine
+                    }
                 }
             });
         }
@@ -330,17 +373,45 @@ const ConjureAnimalsManager = (function() {
             creature.useMultiAttack = false;
         }
         
+        // Improved multiattack detection
+        let hasMultiattackAbility = false;
+        let multiattackDescription = '';
+        
+        // First check traits for multiattack
+        if (creature.traits) {
+            const multiTrait = creature.traits.find(trait => 
+                trait.name && trait.name.toLowerCase() === 'multiattack' || 
+                (trait.desc && trait.desc.toLowerCase().includes('multiattack'))
+            );
+            if (multiTrait) {
+                hasMultiattackAbility = true;
+                multiattackDescription = multiTrait.desc || 'Can make multiple attacks';
+                // Enable multiattack by default if it has the ability
+                creature.useMultiAttack = true;
+            }
+        }
+        
+        // Then check actions for multiattack
+        if (!hasMultiattackAbility && creature.actions) {
+            const multiAction = creature.actions.find(action => 
+                action.name && action.name.toLowerCase() === 'multiattack' || 
+                (action.desc && (
+                    action.desc.toLowerCase().includes('makes') || 
+                    action.desc.toLowerCase().includes('attack') ||
+                    action.desc.toLowerCase().includes('multiattack')
+                ))
+            );
+            if (multiAction) {
+                hasMultiattackAbility = true;
+                multiattackDescription = multiAction.desc || 'Can make multiple attacks';
+                // Enable multiattack by default if it has the ability
+                creature.useMultiAttack = true;
+            }
+        }
+        
         let attackOptionsHtml = '';
         if (creature.attackActions.length > 0) {
-            // Add multi-attack toggle if creature has multiple attacks or Multiattack trait
-            const hasMultiattackAbility = creature.traits && creature.traits.some(trait => 
-                trait.name.toLowerCase() === 'multiattack' || 
-                (trait.desc && trait.desc.toLowerCase().includes('multiattack'))
-            ) || creature.actions && creature.actions.some(action => 
-                action.name.toLowerCase() === 'multiattack' || 
-                (action.desc && action.desc.toLowerCase().includes('makes'))
-            );
-            
+            // Add multi-attack toggle if creature has multiple attacks or multiattack ability
             const multiattackToggle = hasMultiattackAbility || hasMultipleAttacks ? `
                 <div class="form-check mb-2">
                     <input class="form-check-input use-multiattack" type="checkbox" id="use-multiattack-${index}" ${creature.useMultiAttack ? 'checked' : ''}>
@@ -348,6 +419,7 @@ const ConjureAnimalsManager = (function() {
                         Use Multiple Attacks
                     </label>
                 </div>
+                ${multiattackDescription ? `<div class="mb-2 small text-muted">${multiattackDescription}</div>` : ''}
             ` : '';
             
             attackOptionsHtml = `
@@ -357,7 +429,7 @@ const ConjureAnimalsManager = (function() {
                         <label class="form-label">Attack Type</label>
                         <select class="form-select form-select-sm attack-select">
                             ${creature.attackActions.map((action, i) => 
-                                `<option value="${i}">${action.name}</option>`
+                                `<option value="${i}">${action.name} (+${action.attackBonus})</option>`
                             ).join('')}
                         </select>
                     </div>
@@ -375,9 +447,13 @@ const ConjureAnimalsManager = (function() {
                         </div>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
-                        <button class="btn btn-sm btn-success roll-single-attack-btn">Roll Attack(s)</button>
+                        <button class="btn btn-sm btn-success roll-single-attack-btn" title="Roll the selected attack">
+                            Roll Attack
+                        </button>
 
-                        <button class="btn btn-sm btn-danger roll-damage-btn">Roll Damage</button>
+                        <button class="btn btn-sm btn-danger roll-damage-btn" title="Roll damage for the selected attack">
+                            Roll Damage
+                        </button>
                     </div>
                     <div class="attack-results mt-2">
                         <!-- Attack results will be displayed here -->
@@ -453,8 +529,28 @@ const ConjureAnimalsManager = (function() {
         // Toggle multiattack
         const multiattackCheckbox = cardDiv.querySelector('.use-multiattack');
         if (multiattackCheckbox) {
-            multiattackCheckbox.addEventListener('change', () => {
-                summonedCreatures[index].useMultiAttack = multiattackCheckbox.checked;
+            // Remove any existing listener to avoid duplicates
+            const newCheckbox = multiattackCheckbox.cloneNode(true);
+            if (multiattackCheckbox.parentNode) {
+                multiattackCheckbox.parentNode.replaceChild(newCheckbox, multiattackCheckbox);
+            }
+            
+            // Add new listener
+            newCheckbox.addEventListener('change', () => {
+                console.log(`Multiattack toggle changed for creature ${index} to ${newCheckbox.checked}`);
+                // Update the creature in the summonedCreatures array
+                summonedCreatures[index].useMultiAttack = newCheckbox.checked;
+                
+                // Update button text based on multiattack status
+                const attackBtn = cardDiv.querySelector('.roll-single-attack-btn');
+                if (attackBtn) {
+                    attackBtn.textContent = newCheckbox.checked ? 'Roll All Attacks' : 'Roll Attack';
+                }
+                
+                const damageBtn = cardDiv.querySelector('.roll-damage-btn');
+                if (damageBtn) {
+                    damageBtn.textContent = newCheckbox.checked ? 'Roll All Damage' : 'Roll Damage';
+                }
             });
         }
         
@@ -487,25 +583,81 @@ const ConjureAnimalsManager = (function() {
         // Roll attack button - handles single or multiple attacks based on toggle
         const rollSingleBtn = cardDiv.querySelector('.roll-single-attack-btn');
         if (rollSingleBtn) {
-            rollSingleBtn.addEventListener('click', () => {
+            // Remove any existing listener to avoid duplicates
+            const newRollSingleBtn = rollSingleBtn.cloneNode(true);
+            if (rollSingleBtn.parentNode) {
+                rollSingleBtn.parentNode.replaceChild(newRollSingleBtn, rollSingleBtn);
+            }
+            
+            // Add new listener
+            newRollSingleBtn.addEventListener('click', (event) => {
+                // Stop event propagation to prevent bubbling
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Always get the latest state of the creature to ensure we have the correct useMultiAttack value
+                const currentCreature = summonedCreatures.find(c => c.id === creature.id);
+                if (!currentCreature) {
+                    console.error('Could not find creature in summonedCreatures array');
+                    return;
+                }
+                
                 const attackSelect = cardDiv.querySelector('.attack-select');
+                if (!attackSelect) {
+                    console.error('Attack select not found');
+                    return;
+                }
+                
                 const attackIndex = parseInt(attackSelect.value);
                 const rollType = cardDiv.querySelector('input[name^="roll-type"]:checked').value;
-                const useMultiAttack = creature.useMultiAttack;
+                // Use the current creature's state instead of the closure variable
+                const useMultiAttack = currentCreature.useMultiAttack;
                 const resultsContainer = cardDiv.querySelector('.attack-results');
                 
-                if (useMultiAttack && creature.attackActions.length > 1) {
-                    // Use all attacks
-                    const results = [];
-                    creature.attackActions.forEach(attack => {
-                        const result = rollAttack(attack, creature, rollType);
-                        results.push(result);
-                    });
-                    displayAttackResults(resultsContainer, results);
+                if (!resultsContainer) {
+                    console.error('Results container not found');
+                    return;
+                }
+                
+                // Clear previous results
+                resultsContainer.innerHTML = '';
+                
+                console.log(`Rolling attack for creature #${index+1}, multiattack: ${useMultiAttack}`);
+                
+                if (useMultiAttack && currentCreature.attackActions.length > 1) {
+                    // For multiattack, we need to decide which attacks to include
+                    const attackResults = [];
+                    
+                    if (currentCreature.attackActions.some(a => a.isPartOfMultiattack)) {
+                        // Only use attacks that are part of multiattack
+                        currentCreature.attackActions.forEach(attack => {
+                            if (attack.isPartOfMultiattack) {
+                                // Check how many of this attack to make
+                                const attackCount = attack.multiattackCount || 1;
+                                
+                                for (let i = 0; i < attackCount; i++) {
+                                    const result = rollAttack(attack, currentCreature, rollType);
+                                    attackResults.push(result);
+                                }
+                            }
+                        });
+                    } else {
+                        // If we can't determine specific multiattack actions, use all attacks
+                        currentCreature.attackActions.forEach(attack => {
+                            const result = rollAttack(attack, currentCreature, rollType);
+                            attackResults.push(result);
+                        });
+                    }
+                    
+                    // Display all results
+                    if (attackResults.length > 0) {
+                        resultsContainer.innerHTML = '<h6 class="mt-2">Multiattack Results:</h6>';
+                        displayAttackResults(resultsContainer, attackResults);
+                    }
                 } else {
                     // Use just the selected attack
-                    const attack = creature.attackActions[attackIndex];
-                    const result = rollAttack(attack, creature, rollType);
+                    const attack = currentCreature.attackActions[attackIndex];
+                    const result = rollAttack(attack, currentCreature, rollType);
                     displayAttackResult(resultsContainer, result);
                 }
             });
@@ -516,34 +668,101 @@ const ConjureAnimalsManager = (function() {
         // Roll damage button
         const rollDamageBtn = cardDiv.querySelector('.roll-damage-btn');
         if (rollDamageBtn) {
-            rollDamageBtn.addEventListener('click', () => {
+            // Remove any existing listener to avoid duplicates 
+            const newRollDamageBtn = rollDamageBtn.cloneNode(true);
+            if (rollDamageBtn.parentNode) {
+                rollDamageBtn.parentNode.replaceChild(newRollDamageBtn, rollDamageBtn);
+            }
+            
+            // Add new listener
+            newRollDamageBtn.addEventListener('click', (event) => {
+                // Stop event propagation to prevent bubbling
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Always get the latest state of the creature to ensure we have the correct useMultiAttack value
+                const currentCreature = summonedCreatures.find(c => c.id === creature.id);
+                if (!currentCreature) {
+                    console.error('Could not find creature in summonedCreatures array');
+                    return;
+                }
+                
                 const attackSelect = cardDiv.querySelector('.attack-select');
+                if (!attackSelect) {
+                    console.error('Attack select not found');
+                    return;
+                }
+                
                 const attackIndex = parseInt(attackSelect.value);
                 const attackResultsContainer = cardDiv.querySelector('.attack-results');
                 
-                if (creature.useMultiAttack && creature.attackActions.length > 1) {
+                if (!attackResultsContainer) {
+                    console.error('Attack results container not found');
+                    return;
+                }
+                
+                console.log(`Rolling damage for creature #${index+1}, multiattack: ${currentCreature.useMultiAttack}`);
+                
+                // Clear previous results
+                attackResultsContainer.innerHTML = '';
+                
+                if (currentCreature.useMultiAttack && currentCreature.attackActions.length > 1) {
                     // Roll damage for all attacks
                     const damageResults = [];
-                    creature.attackActions.forEach(attack => {
-                        const damageResult = rollDamage(attack, creature, false);
-                        if (damageResult) {
-                            damageResults.push(damageResult);
-                        }
-                    });
+                    let totalDamage = 0;
+                    
+                    if (currentCreature.attackActions.some(a => a.isPartOfMultiattack)) {
+                        // Only use attacks that are part of multiattack
+                        currentCreature.attackActions.forEach(attack => {
+                            if (attack.isPartOfMultiattack) {
+                                // Check how many of this attack to make
+                                const attackCount = attack.multiattackCount || 1;
+                                
+                                for (let i = 0; i < attackCount; i++) {
+                                    console.log(`Rolling damage for ${attack.name} (multiattack)`);
+                                    const damageResult = rollDamage(attack, currentCreature, false);
+                                    if (damageResult) {
+                                        damageResults.push(damageResult);
+                                        totalDamage += damageResult.total;
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        // If we can't determine specific multiattack actions, use all attacks
+                        currentCreature.attackActions.forEach(attack => {
+                            console.log('Rolling damage for attack:', attack.name);
+                            const damageResult = rollDamage(attack, currentCreature, false);
+                            if (damageResult) {
+                                damageResults.push(damageResult);
+                                totalDamage += damageResult.total;
+                            }
+                        });
+                    }
                     
                     // Display damage results
                     if (damageResults.length > 0) {
                         attackResultsContainer.style.display = 'block';
+                        console.log('Displaying', damageResults.length, 'damage results, total:', totalDamage);
+                        
+                        // Add heading with total damage
+                        const totalDamageElem = document.createElement('div');
+                        totalDamageElem.className = 'alert alert-danger mt-2 py-1';
+                        totalDamageElem.innerHTML = `<strong>Total Damage: ${totalDamage}</strong>`;
+                        attackResultsContainer.appendChild(totalDamageElem);
+                        
                         displayDamageResults(attackResultsContainer, damageResults);
                     }
                 } else {
                     // Roll damage for the selected attack
-                    const attack = creature.attackActions[attackIndex];
-                    const damageResult = rollDamage(attack, creature, false);
+                    const attack = currentCreature.attackActions[attackIndex];
+                    console.log('Rolling damage for attack:', attack.name);
+                    const damageResult = rollDamage(attack, currentCreature, false);
                     
                     // Display damage results
                     if (damageResult) {
                         attackResultsContainer.style.display = 'block';
+                        console.log('Displaying single damage result, total:', damageResult.total);
                         displayDamageResults(attackResultsContainer, [damageResult]);
                     }
                 }
@@ -732,6 +951,15 @@ const ConjureAnimalsManager = (function() {
         
         // Handle fixed damage (no dice)
         if (damageParts.diceCount === 0) {
+            // Even with fixed damage, we need to check for a modifier
+            // Check if the attack bonus should be used as modifier
+            if (damageParts.modifier === 0 && attack.attackBonus) {
+                // If no explicit modifier but we have an attack bonus, try to use that
+                // This is a common pattern in stat blocks where the damage bonus equals attack bonus
+                damageParts.modifier = parseInt(attack.attackBonus);
+                console.log('Using attack bonus as damage modifier:', damageParts.modifier);
+            }
+            
             return {
                 attackName: attack.name || 'Attack',
                 rolls: [],
@@ -747,6 +975,13 @@ const ConjureAnimalsManager = (function() {
             const roll = Math.floor(Math.random() * damageParts.diceFaces) + 1;
             rolls.push(roll);
             diceTotal += roll;
+        }
+        
+        // If no explicit modifier but we have an attack bonus, try to use that
+        if (damageParts.modifier === 0 && attack.attackBonus) {
+            // This is a common pattern in stat blocks where the damage bonus equals attack bonus
+            damageParts.modifier = parseInt(attack.attackBonus);
+            console.log('Using attack bonus as damage modifier:', damageParts.modifier);
         }
         
         // Add the modifier (only once, even on crits)
@@ -775,80 +1010,93 @@ const ConjureAnimalsManager = (function() {
             return null;
         }
         
+        // Create a copy of the attack to avoid modifying the original
+        const attackCopy = JSON.parse(JSON.stringify(attack));
+        
         // Debug logging
-        console.log('Rolling damage for:', attack.name);
+        console.log('Rolling damage for:', attackCopy.name);
         
         // If damageExpr is not set or empty, try to extract it from the description
-        if (!attack.damageExpr || attack.damageExpr.trim() === '') {
+        if (!attackCopy.damageExpr || attackCopy.damageExpr.trim() === '') {
             console.log('No damageExpr found, trying to extract from description');
             
-            if (attack.desc) {
+            if (attackCopy.desc) {
                 // Try different regex patterns to extract damage info
                 
                 // Pattern 1: "Hit: X (YdZ+W) type damage"
-                let damageMatch = attack.desc.match(/Hit:\s*(\d+)\s*\(([^\)]+)\)\s*([a-z]+)\s*damage/);
+                let damageMatch = attackCopy.desc.match(/Hit:\s*(\d+)\s*\(([^\)]+)\)\s*([a-z]+)\s*damage/);
                 if (damageMatch) {
-                    attack.damageExpr = damageMatch[2];
-                    attack.damageType = damageMatch[3];
-                    console.log('Extracted from pattern 1:', attack.damageExpr, attack.damageType);
+                    attackCopy.damageExpr = damageMatch[2];
+                    attackCopy.damageType = damageMatch[3];
+                    console.log('Extracted from pattern 1:', attackCopy.damageExpr, attackCopy.damageType);
                 } else {
                     // Pattern 2: Just "X (YdZ+W)"
-                    damageMatch = attack.desc.match(/(\d+)\s*\(([^\)]+)\)/);
+                    damageMatch = attackCopy.desc.match(/(\d+)\s*\(([^\)]+)\)/);
                     if (damageMatch) {
-                        attack.damageExpr = damageMatch[2];
+                        attackCopy.damageExpr = damageMatch[2];
                         // Try to extract damage type
-                        const typeMatch = attack.desc.match(/([a-z]+)\s*damage/);
-                        attack.damageType = typeMatch ? typeMatch[1] : 'damage';
-                        console.log('Extracted from pattern 2:', attack.damageExpr, attack.damageType);
+                        const typeMatch = attackCopy.desc.match(/([a-z]+)\s*damage/);
+                        attackCopy.damageType = typeMatch ? typeMatch[1] : 'damage';
+                        console.log('Extracted from pattern 2:', attackCopy.damageExpr, attackCopy.damageType);
                     }
                 }
             }
         }
         
         // If we still don't have a damage expression, create a default
-        if (!attack.damageExpr || attack.damageExpr.trim() === '') {
+        if (!attackCopy.damageExpr || attackCopy.damageExpr.trim() === '') {
             // Look for a simple damage number in the description
-            if (attack.desc) {
-                const simpleMatch = attack.desc.match(/(\d+)\s*([a-z]+)\s*damage/);
+            if (attackCopy.desc) {
+                const simpleMatch = attackCopy.desc.match(/(\d+)\s*([a-z]+)\s*damage/);
                 if (simpleMatch) {
-                    // Just use the number directly as modifier
-                    attack.damageExpr = simpleMatch[1];
-                    attack.damageType = simpleMatch[2];
-                    console.log('Using simple damage number:', attack.damageExpr, attack.damageType);
+                    // Just use the number directly as fixed damage
+                    const damageValue = parseInt(simpleMatch[1]);
+                    attackCopy.damageExpr = damageValue.toString(); // Fixed damage value
+                    attackCopy.damageType = simpleMatch[2];
+                    console.log('Using simple damage number:', attackCopy.damageExpr, attackCopy.damageType);
                 } else {
                     // Fall back to a simple 1d6
-                    attack.damageExpr = '1d6';
-                    attack.damageType = 'damage';
+                    attackCopy.damageExpr = '1d6';
+                    attackCopy.damageType = 'damage';
                     console.log('Using fallback damage: 1d6');
                 }
             } else {
                 // Complete fallback
-                attack.damageExpr = '1d6';
-                attack.damageType = 'damage';
+                attackCopy.damageExpr = '1d6';
+                attackCopy.damageType = 'damage';
                 console.log('No description, using fallback: 1d6');
             }
         }
         
-        console.log('Final damage expression:', attack.damageExpr);
+        console.log('Final damage expression:', attackCopy.damageExpr);
         
-        // Now calculate the damage
-        const result = calculateDamage(attack, forceCrit);
+        // Always generate a result even if calculation fails
+        let result;
+        
+        try {
+            // Try to calculate the damage
+            result = calculateDamage(attackCopy, forceCrit);
+        } catch (error) {
+            console.error('Error calculating damage:', error);
+            // Fallback to basic damage on error
+            result = null;
+        }
         
         // If calculation succeeded, update name and type
         if (result) {
-            result.attackName = attack.name || 'Attack';
-            result.type = attack.damageType || 'damage';
+            result.attackName = attackCopy.name || 'Attack';
+            result.type = attackCopy.damageType || 'damage';
             console.log('Calculated damage:', result);
             return result;
         } else {
-            console.error('Failed to calculate damage');
+            console.warn('Failed to calculate damage, using fallback');
             // Return a basic fallback result
             return {
-                attackName: attack.name || 'Attack',
+                attackName: attackCopy.name || 'Attack',
                 rolls: [Math.floor(Math.random() * 6) + 1],
                 modifier: 0,
                 total: Math.floor(Math.random() * 6) + 1,
-                type: attack.damageType || 'damage',
+                type: attackCopy.damageType || 'damage',
                 isCritical: forceCrit
             };
         }
@@ -869,51 +1117,69 @@ const ConjureAnimalsManager = (function() {
         
         if (!expr) return result;
         
-        // Try to handle various formats of damage expressions
-        
-        // Format: "2d6+3" or "1d10" or "3d8-1"
-        const standardMatch = expr.match(/(\d+)d(\d+)(?:([-+])(\d+))?/);
-        
-        if (standardMatch) {
-            result.diceCount = parseInt(standardMatch[1]);
-            result.diceFaces = parseInt(standardMatch[2]);
+        try {
+            // Try to handle various formats of damage expressions
             
-            // Handle modifier
-            if (standardMatch[3] && standardMatch[4]) {
-                const modValue = parseInt(standardMatch[4]);
-                result.modifier = standardMatch[3] === '+' ? modValue : -modValue;
+            // Format: "2d6+3" or "1d10" or "3d8-1"
+            const standardMatch = expr.match(/(\d+)d(\d+)(?:([-+])(\d+))?/);
+            
+            if (standardMatch) {
+                result.diceCount = parseInt(standardMatch[1]);
+                result.diceFaces = parseInt(standardMatch[2]);
+                
+                // Handle modifier
+                if (standardMatch[3] && standardMatch[4]) {
+                    const modValue = parseInt(standardMatch[4]);
+                    result.modifier = standardMatch[3] === '+' ? modValue : -modValue;
+                }
+                
+                return result;
             }
             
-            return result;
-        }
-        
-        // Format: "2d6 + 3" or "1d10 - 1" (with spaces)
-        const spacedMatch = expr.match(/(\d+)\s*d\s*(\d+)\s*(?:([-+])\s*(\d+))?/);
-        
-        if (spacedMatch) {
-            result.diceCount = parseInt(spacedMatch[1]);
-            result.diceFaces = parseInt(spacedMatch[2]);
+            // Format: "2d6 + 3" or "1d10 - 1" (with spaces)
+            const spacedMatch = expr.match(/(\d+)\s*d\s*(\d+)\s*(?:([-+])\s*(\d+))?/);
             
-            // Handle modifier
-            if (spacedMatch[3] && spacedMatch[4]) {
-                const modValue = parseInt(spacedMatch[4]);
-                result.modifier = spacedMatch[3] === '+' ? modValue : -modValue;
+            if (spacedMatch) {
+                result.diceCount = parseInt(spacedMatch[1]);
+                result.diceFaces = parseInt(spacedMatch[2]);
+                
+                // Handle modifier
+                if (spacedMatch[3] && spacedMatch[4]) {
+                    const modValue = parseInt(spacedMatch[4]);
+                    result.modifier = spacedMatch[3] === '+' ? modValue : -modValue;
+                }
+                
+                return result;
             }
             
+            // Just a number (e.g., "5")
+            const justNumber = expr.match(/^\s*(\d+)\s*$/);
+            if (justNumber) {
+                result.diceCount = 0;
+                result.diceFaces = 0;
+                result.modifier = parseInt(justNumber[1]);
+                return result;
+            }
+            
+            // If it's just a string like "1d8", try a simpler regex
+            const simpleMatch = expr.toString().match(/(\d+)d(\d+)/);
+            if (simpleMatch) {
+                result.diceCount = parseInt(simpleMatch[1]);
+                result.diceFaces = parseInt(simpleMatch[2]);
+                return result;
+            }
+            
+            console.warn('Could not parse damage expression:', expr);
             return result;
+        } catch (error) {
+            console.error('Error parsing damage expression:', expr, error);
+            // Return default values on error
+            return {
+                diceCount: 1,
+                diceFaces: 6,
+                modifier: 0
+            };
         }
-        
-        // Just a number (e.g., "5")
-        const justNumber = expr.match(/^\s*(\d+)\s*$/);
-        if (justNumber) {
-            result.diceCount = 0;
-            result.diceFaces = 0;
-            result.modifier = parseInt(justNumber[1]);
-            return result;
-        }
-        
-        console.warn('Could not parse damage expression:', expr);
-        return result;
     }
     
     /**
@@ -1392,6 +1658,11 @@ const ConjureAnimalsManager = (function() {
         const rollTypeSelector = document.getElementById('group-roll-type-selector');
         const rollType = rollTypeSelector ? rollTypeSelector.value : 'normal';
         
+        // Track total hits and critical hits
+        let totalGroupHits = 0;
+        let totalGroupCrits = 0;
+        let totalGroupMisses = 0;
+        
         // Process each selected creature - results displayed ONLY in creature tiles
         selectedCreatures.forEach(creature => {
             // Get the creature's tile
@@ -1406,24 +1677,94 @@ const ConjureAnimalsManager = (function() {
             
             // Roll based on multiattack setting
             if (creature.attackActions.length > 0) {
+                let attackResults = [];
+                let creatureHits = 0;
+                let creatureCrits = 0;
+                let creatureMisses = 0;
+                
                 if (creature.useMultiAttack && creature.attackActions.length > 1) {
-                    // Use all attacks
-                    const results = [];
-                    creature.attackActions.forEach(attack => {
-                        const result = rollAttack(attack, creature, rollType);
-                        results.push(result);
-                    });
-                    displayAttackResults(attackResultsContainer, results);
+                    // Check if we have specific multiattack information
+                    if (creature.attackActions.some(a => a.isPartOfMultiattack)) {
+                        // Only use attacks that are part of multiattack
+                        creature.attackActions.forEach(attack => {
+                            if (attack.isPartOfMultiattack) {
+                                // Check how many of this attack to make
+                                const attackCount = attack.multiattackCount || 1;
+                                
+                                for (let i = 0; i < attackCount; i++) {
+                                    const result = rollAttack(attack, creature, rollType);
+                                    attackResults.push(result);
+                                    
+                                    // Count hits and crits
+                                    if (result.isCritical) creatureCrits++;
+                                    else if (result.isHit) creatureHits++;
+                                    else creatureMisses++;
+                                }
+                            }
+                        });
+                    } else {
+                        // Use all attacks
+                        creature.attackActions.forEach(attack => {
+                            const result = rollAttack(attack, creature, rollType);
+                            attackResults.push(result);
+                            
+                            // Count hits and crits
+                            if (result.isCritical) creatureCrits++;
+                            else if (result.isHit) creatureHits++;
+                            else creatureMisses++;
+                        });
+                    }
+                    
+                    // Add heading with hits/crits summary
+                    const summaryElem = document.createElement('div');
+                    summaryElem.className = 'alert alert-info mt-2 py-1';
+                    summaryElem.innerHTML = `<strong>Multiattack: ${creatureHits + creatureCrits} hits (${creatureCrits} crits), ${creatureMisses} misses</strong>`;
+                    attackResultsContainer.appendChild(summaryElem);
+                    
+                    // Display results
+                    displayAttackResults(attackResultsContainer, attackResults);
                 } else {
                     // Use just the first attack
                     const attack = creature.attackActions[0];
                     const result = rollAttack(attack, creature, rollType);
+                    attackResults.push(result);
+                    
+                    // Count hits and crits
+                    if (result.isCritical) creatureCrits++;
+                    else if (result.isHit) creatureHits++;
+                    else creatureMisses++;
+                    
+                    // Display attack result
                     displayAttackResult(attackResultsContainer, result);
                 }
+                
+                // Add to totals
+                totalGroupHits += creatureHits;
+                totalGroupCrits += creatureCrits;
+                totalGroupMisses += creatureMisses;
             } else {
                 attackResultsContainer.innerHTML = '<p>No attack actions available.</p>';
             }
         });
+        
+        // Display the group hit summary next to the group roll attacks button
+        const groupAttackBtn = document.getElementById('roll-all-selected-attacks');
+        if (groupAttackBtn) {
+            // Remove existing summary if present
+            const existingSummary = document.getElementById('group-attack-summary');
+            if (existingSummary) {
+                existingSummary.remove();
+            }
+            
+            // Create new summary display
+            const summaryDisplay = document.createElement('span');
+            summaryDisplay.id = 'group-attack-summary';
+            summaryDisplay.className = 'badge bg-info ms-2';
+            summaryDisplay.textContent = `Hits: ${totalGroupHits + totalGroupCrits} (${totalGroupCrits} crits)`;
+            
+            // Insert after the button
+            groupAttackBtn.parentNode.insertBefore(summaryDisplay, groupAttackBtn.nextSibling);
+        }
     }
     
     /**
@@ -1437,6 +1778,9 @@ const ConjureAnimalsManager = (function() {
             alert('No creatures selected. Please select at least one creature.');
             return;
         }
+        
+        // Track total damage across all creatures
+        let totalGroupDamage = 0;
         
         // Process each selected creature - results displayed ONLY in creature tiles
         selectedCreatures.forEach(creature => {
@@ -1453,15 +1797,36 @@ const ConjureAnimalsManager = (function() {
             // Roll based on multiattack setting
             if (creature.attackActions.length > 0) {
                 let damageResults = [];
+                let creatureTotalDamage = 0;
                 
                 if (creature.useMultiAttack && creature.attackActions.length > 1) {
-                    // Roll damage for all attacks
-                    creature.attackActions.forEach(attack => {
-                        const damageResult = rollDamage(attack, creature, false);
-                        if (damageResult) {
-                            damageResults.push(damageResult);
-                        }
-                    });
+                    // Check if we have specific multiattack information
+                    if (creature.attackActions.some(a => a.isPartOfMultiattack)) {
+                        // Only use attacks that are part of multiattack
+                        creature.attackActions.forEach(attack => {
+                            if (attack.isPartOfMultiattack) {
+                                // Check how many of this attack to make
+                                const attackCount = attack.multiattackCount || 1;
+                                
+                                for (let i = 0; i < attackCount; i++) {
+                                    const damageResult = rollDamage(attack, creature, false);
+                                    if (damageResult) {
+                                        damageResults.push(damageResult);
+                                        creatureTotalDamage += damageResult.total;
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        // Roll damage for all attacks
+                        creature.attackActions.forEach(attack => {
+                            const damageResult = rollDamage(attack, creature, false);
+                            if (damageResult) {
+                                damageResults.push(damageResult);
+                                creatureTotalDamage += damageResult.total;
+                            }
+                        });
+                    }
                 } else {
                     // Roll damage for just the first attack
                     const attack = creature.attackActions[0];
@@ -1469,11 +1834,22 @@ const ConjureAnimalsManager = (function() {
                     
                     if (damageResult) {
                         damageResults.push(damageResult);
+                        creatureTotalDamage += damageResult.total;
                     }
                 }
                 
+                // Add to grand total
+                totalGroupDamage += creatureTotalDamage;
+                
                 // Display results in creature tile
                 if (damageResults.length > 0) {
+                    // Add a header with the creature's total damage
+                    const totalElement = document.createElement('div');
+                    totalElement.className = 'alert alert-danger mt-2 py-1';
+                    totalElement.innerHTML = `<strong>Damage: ${creatureTotalDamage}</strong>`;
+                    attackResultsContainer.appendChild(totalElement);
+                    
+                    // Display detailed results
                     displayDamageResults(attackResultsContainer, damageResults);
                 } else {
                     attackResultsContainer.innerHTML = '<p>Could not calculate damage.</p>';
@@ -1482,6 +1858,25 @@ const ConjureAnimalsManager = (function() {
                 attackResultsContainer.innerHTML = '<p>No attack actions available.</p>';
             }
         });
+        
+        // Display the grand total next to the group roll damage button
+        const groupDamageBtn = document.getElementById('roll-all-selected-damage');
+        if (groupDamageBtn) {
+            // Remove existing total if present
+            const existingTotal = document.getElementById('group-damage-total');
+            if (existingTotal) {
+                existingTotal.remove();
+            }
+            
+            // Create new total display
+            const totalDisplay = document.createElement('span');
+            totalDisplay.id = 'group-damage-total';
+            totalDisplay.className = 'badge bg-danger ms-2';
+            totalDisplay.textContent = `Total: ${totalGroupDamage}`;
+            
+            // Insert after the button
+            groupDamageBtn.parentNode.insertBefore(totalDisplay, groupDamageBtn.nextSibling);
+        }
     }
     
     // Public API

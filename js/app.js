@@ -162,12 +162,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
             document.getElementById('wildshapeTitle').textContent = 'Wildshape Form';
+            
+            // Return to statblock tab
+            const statblockTabEl = new bootstrap.Tab(elements.statblockTab);
+            statblockTabEl.show();
         });
         
         // Reset Conjure Animals button
         document.getElementById('resetConjure').addEventListener('click', function() {
             // Use the ConjureAnimalsManager to reset the tab
             ConjureAnimalsManager.init();
+            
+            // Return to statblock tab
+            const statblockTabEl = new bootstrap.Tab(elements.statblockTab);
+            statblockTabEl.show();
         });
         
         // Beast search
