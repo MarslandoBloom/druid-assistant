@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
         mainTabs: document.getElementById('mainTabs'),
         statblockTab: document.getElementById('statblock-tab'),
         wildshapeTab: document.getElementById('wildshape-tab'),
-        conjureTab: document.getElementById('conjure-tab'),
         
         // Beast list and filtering
         beastSearch: document.getElementById('beastSearch'),
@@ -28,10 +27,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Action buttons
         wildshapeButton: document.getElementById('wildshapeButton'),
         favoriteButton: document.getElementById('favoriteButton'),
-        conjureButton: document.getElementById('conjureButton'),
-        
-        // Battlefield
-        battlefield: document.getElementById('battlefield'),
         
         // Data management
         mdFileInput: document.getElementById('mdFileInput'),
@@ -162,16 +157,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
             document.getElementById('wildshapeTitle').textContent = 'Wildshape Form';
-            
-            // Return to statblock tab
-            const statblockTabEl = new bootstrap.Tab(elements.statblockTab);
-            statblockTabEl.show();
-        });
-        
-        // Reset Conjure Animals button
-        document.getElementById('resetConjure').addEventListener('click', function() {
-            // Use the ConjureAnimalsManager to reset the tab
-            ConjureAnimalsManager.init();
             
             // Return to statblock tab
             const statblockTabEl = new bootstrap.Tab(elements.statblockTab);
@@ -348,22 +333,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Conjure button
-        elements.conjureButton.addEventListener('click', function() {
-            const currentBeast = UIManager.getCurrentBeast();
-            if (currentBeast) {
-                // Use the ConjureAnimalsManager to summon creatures
-                ConjureAnimalsManager.summonCreatures(currentBeast);
-                
-                // Switch to conjure tab
-                const conjureTabEl = new bootstrap.Tab(elements.conjureTab);
-                conjureTabEl.show();
-            }
-        });
-        
-        // The toggleBattlefield button has been removed in the updated UI
-        // The battlefield is now always visible
-        
         // Upload data button
         elements.uploadDataBtn.addEventListener('click', function() {
             const fileInput = elements.mdFileInput;
@@ -438,7 +407,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Disable buttons
                         elements.wildshapeButton.disabled = true;
                         elements.favoriteButton.disabled = true;
-                        elements.conjureButton.disabled = true;
                         
                         // Close the modal
                         const modal = bootstrap.Modal.getInstance(document.getElementById('dataModal'));
@@ -453,152 +421,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
             }
         });
-    }
-    
-    /**
-     * Initializes the battlefield visualization
-     */
-    function initBattlefield() {
-        const battlefield = document.querySelector('.battlefield-container');
-        if (!battlefield) return;
-        
-        // Clear previous battlefield
-        battlefield.innerHTML = '';
-        
-        const currentBeast = UIManager.getCurrentBeast();
-        if (!currentBeast) return;
-        
-        // Determine number of creatures based on CR
-        let numCreatures = 1;
-        
-        switch(currentBeast.cr) {
-            case '2':
-                numCreatures = 1;
-                break;
-            case '1':
-                numCreatures = 2;
-                break;
-            case '1/2':
-                numCreatures = 4;
-                break;
-            case '1/4':
-                numCreatures = 8;
-                break;
-            default:
-                numCreatures = 1;
-        }
-        
-        // Add friendly tokens
-        for (let i = 0; i < numCreatures; i++) {
-            const token = document.createElement('div');
-            token.className = 'token token-friendly';
-            token.textContent = (i + 1).toString();
-            token.style.left = `${50 + (i % 4) * 50}px`;
-            token.style.top = `${50 + Math.floor(i / 4) * 50}px`;
-            
-            // Make tokens draggable
-            makeTokenDraggable(token);
-            
-            battlefield.appendChild(token);
-        }
-        
-        // Add enemy token button
-        const addEnemyBtn = document.createElement('button');
-        addEnemyBtn.className = 'btn btn-danger position-absolute';
-        addEnemyBtn.style.right = '10px';
-        addEnemyBtn.style.top = '10px';
-        addEnemyBtn.textContent = 'Add Enemy';
-        
-        addEnemyBtn.addEventListener('click', function() {
-            const token = document.createElement('div');
-            token.className = 'token token-enemy';
-            token.textContent = 'E';
-            token.style.left = '200px';
-            token.style.top = '200px';
-            
-            // Make token draggable
-            makeTokenDraggable(token);
-            
-            battlefield.appendChild(token);
-        });
-        
-        battlefield.appendChild(addEnemyBtn);
-        
-        // Add clear battlefield button
-        const clearBtn = document.createElement('button');
-        clearBtn.className = 'btn btn-secondary position-absolute';
-        clearBtn.style.right = '110px';
-        clearBtn.style.top = '10px';
-        clearBtn.textContent = 'Clear';
-        
-        clearBtn.addEventListener('click', function() {
-            initBattlefield();
-        });
-        
-        battlefield.appendChild(clearBtn);
-    }
-    
-    /**
-     * Makes a token draggable
-     * @param {HTMLElement} token - Token element to make draggable
-     */
-    function makeTokenDraggable(token) {
-        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        
-        token.onmousedown = dragMouseDown;
-        token.ontouchstart = dragTouchStart;
-        
-        function dragMouseDown(e) {
-            e.preventDefault();
-            // Get the mouse cursor position at startup
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            document.onmouseup = closeDragElement;
-            // Call a function whenever the cursor moves
-            document.onmousemove = elementDrag;
-        }
-        
-        function dragTouchStart(e) {
-            e.preventDefault();
-            // Get the touch position at startup
-            pos3 = e.touches[0].clientX;
-            pos4 = e.touches[0].clientY;
-            document.ontouchend = closeDragElement;
-            // Call a function whenever the touch moves
-            document.ontouchmove = elementTouchDrag;
-        }
-        
-        function elementDrag(e) {
-            e.preventDefault();
-            // Calculate the new cursor position
-            pos1 = pos3 - e.clientX;
-            pos2 = pos4 - e.clientY;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            // Set the element's new position
-            token.style.top = (token.offsetTop - pos2) + "px";
-            token.style.left = (token.offsetLeft - pos1) + "px";
-        }
-        
-        function elementTouchDrag(e) {
-            e.preventDefault();
-            // Calculate the new touch position
-            pos1 = pos3 - e.touches[0].clientX;
-            pos2 = pos4 - e.touches[0].clientY;
-            pos3 = e.touches[0].clientX;
-            pos4 = e.touches[0].clientY;
-            // Set the element's new position
-            token.style.top = (token.offsetTop - pos2) + "px";
-            token.style.left = (token.offsetLeft - pos1) + "px";
-        }
-        
-        function closeDragElement() {
-            // Stop moving when mouse button is released
-            document.onmouseup = null;
-            document.onmousemove = null;
-            document.ontouchend = null;
-            document.ontouchmove = null;
-        }
     }
     
     // Initialize the application
