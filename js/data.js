@@ -1,6 +1,7 @@
 /**
  * data.js - Data management module for the Druid's Assistant
  * Handles IndexedDB setup, markdown parsing, and beast data management
+ * Includes default favorites: wolf, velociraptor, giant owl
  */
 
 const DataManager = (function() {
@@ -722,7 +723,14 @@ const DataManager = (function() {
                 let processed = 0;
                 
                 if (favorites.length === 0) {
-                    resolve([]);
+                    ensureDefaultFavorites()
+                        .then(defaultFavorites => {
+                            resolve(defaultFavorites);
+                        })
+                        .catch(error => {
+                            console.error('Error ensuring default favorites:', error);
+                            resolve([]);
+                        });
                     return;
                 }
                 
@@ -837,6 +845,71 @@ const DataManager = (function() {
         });
     }
     
+    /**
+     * Ensures default favorites (wolf, velociraptor, giant owl) are always available
+     * @returns {Promise} Resolves with array of default favorite beast objects
+     */
+    function ensureDefaultFavorites() {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const defaultIds = ['wolf', 'velociraptor', 'giant-owl'];
+            const defaultFavorites = [];
+            let processed = 0;
+            
+            // Get all beasts
+            getAllBeasts().then(beasts => {
+                // Filter beasts by default IDs
+                const defaultBeasts = beasts.filter(beast => defaultIds.includes(beast.id));
+                
+                // If any default beasts are missing, we need to find them by name
+                const foundIds = defaultBeasts.map(beast => beast.id);
+                const missingIds = defaultIds.filter(id => !foundIds.includes(id));
+                
+                if (missingIds.length > 0) {
+                    // Try to find beasts by name
+                    missingIds.forEach(id => {
+                        const nameToFind = id.replace(/-/g, ' ');
+                        const beast = beasts.find(b => b.name.toLowerCase() === nameToFind);
+                        if (beast) {
+                            defaultBeasts.push(beast);
+                        }
+                    });
+                }
+                
+                // Add all default beasts as favorites
+                const favTransaction = db.transaction([FAVORITES_STORE], 'readwrite');
+                const favStore = favTransaction.objectStore(FAVORITES_STORE);
+                
+                defaultBeasts.forEach(beast => {
+                    const favorite = {
+                        id: beast.id,
+                        dateAdded: new Date()
+                    };
+                    
+                    favStore.put(favorite);
+                    defaultFavorites.push(beast);
+                });
+                
+                favTransaction.oncomplete = () => {
+                    console.log(`Added ${defaultBeasts.length} default favorites`);
+                    resolve(defaultFavorites);
+                };
+                
+                favTransaction.onerror = (event) => {
+                    console.error('Error adding default favorites:', event.target.error);
+                    resolve(defaultFavorites); // Still return the beasts even if we couldn't save them as favorites
+                };
+            }).catch(error => {
+                console.error('Error getting beasts for default favorites:', error);
+                reject(error);
+            });
+        });
+    }
+    
     // Public API
     return {
         initDatabase,
@@ -849,6 +922,7 @@ const DataManager = (function() {
         removeFavorite,
         isFavorite,
         getAllFavorites,
+        ensureDefaultFavorites,
         clearAllData,
         loadBeastData
     };

@@ -46,14 +46,34 @@ const ConjureAnimalsManager = (function() {
             battlefield.addEventListener('mouseup', handleBattlefieldMouseUp);
         }
         
-        // Add enemy and clear enemies buttons
-        document.addEventListener('click', function(e) {
-            if (e.target.id === 'add-enemy-btn') {
+        // Add enemy and clear enemies buttons - use dedicated event listeners to avoid multiple triggers
+        const addEnemyBtn = document.getElementById('add-enemy-btn');
+        if (addEnemyBtn) {
+            // Remove any existing listeners to prevent duplicates
+            const newAddEnemyBtn = addEnemyBtn.cloneNode(true);
+            addEnemyBtn.parentNode.replaceChild(newAddEnemyBtn, addEnemyBtn);
+            
+            // Add new listener with event prevention
+            newAddEnemyBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 addEnemyToken();
-            } else if (e.target.id === 'clear-enemies-btn') {
+            });
+        }
+        
+        const clearEnemiesBtn = document.getElementById('clear-enemies-btn');
+        if (clearEnemiesBtn) {
+            // Remove any existing listeners to prevent duplicates
+            const newClearEnemiesBtn = clearEnemiesBtn.cloneNode(true);
+            clearEnemiesBtn.parentNode.replaceChild(newClearEnemiesBtn, clearEnemiesBtn);
+            
+            // Add new listener with event prevention
+            newClearEnemiesBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 clearEnemyTokens();
-            }
-        });
+            });
+        }
     }
     
     /**
@@ -300,11 +320,12 @@ const ConjureAnimalsManager = (function() {
                             <label class="btn btn-outline-success" for="roll-disadvantage-${index}">Disadvantage</label>
                         </div>
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
                         <button class="btn btn-sm btn-success roll-single-attack-btn">Roll Attack</button>
                         ${hasMultipleAttacks ? 
                             `<button class="btn btn-sm btn-primary roll-all-attacks-btn">Roll All Attacks</button>` : 
                             ''}
+                        <button class="btn btn-sm btn-danger roll-damage-btn">Roll Damage</button>
                     </div>
                     <div class="attack-results mt-2" style="display: none;">
                         <!-- Attack results will be displayed here -->
@@ -425,12 +446,30 @@ const ConjureAnimalsManager = (function() {
                 const rollType = cardDiv.querySelector('input[name^="roll-type"]:checked').value;
                 const results = [];
                 
+                // Loop through all attack actions and generate results for each
                 creature.attackActions.forEach(attack => {
                     const result = rollAttack(attack, creature, rollType);
                     results.push(result);
                 });
                 
+                // Display all results
                 displayAttackResults(cardDiv.querySelector('.attack-results'), results);
+            });
+        }
+        
+        // Roll damage button
+        const rollDamageBtn = cardDiv.querySelector('.roll-damage-btn');
+        if (rollDamageBtn) {
+            rollDamageBtn.addEventListener('click', () => {
+                const attackSelect = cardDiv.querySelector('.attack-select');
+                const attackIndex = parseInt(attackSelect.value);
+                const attack = creature.attackActions[attackIndex];
+                
+                // Roll damage for the selected attack
+                const damageResults = rollDamage(attack, creature, true);
+                
+                // Display damage results
+                displayDamageResults(cardDiv.querySelector('.attack-results'), [damageResults]);
             });
         }
     }
@@ -603,12 +642,24 @@ const ConjureAnimalsManager = (function() {
         const damageTotal = diceTotal + damageParts.modifier;
         
         return {
+            attackName: attack.name,
             rolls: rolls,
             modifier: damageParts.modifier,
             total: damageTotal,
             type: attack.damageType,
             isCritical: isCritical
         };
+    }
+    
+    /**
+     * Rolls damage for an attack (direct access method)
+     * @param {Object} attack - The attack to roll damage for
+     * @param {Object} creature - The creature making the attack
+     * @param {boolean} forceCrit - Whether to force a critical hit
+     * @returns {Object} Damage result object
+     */
+    function rollDamage(attack, creature, forceCrit = false) {
+        return calculateDamage(attack, forceCrit);
     }
     
     /**
@@ -722,6 +773,38 @@ const ConjureAnimalsManager = (function() {
     }
     
     /**
+     * Displays damage results
+     * @param {HTMLElement} container - Container to display the results in
+     * @param {Array} damageResults - Array of damage result objects
+     */
+    function displayDamageResults(container, damageResults) {
+        container.style.display = 'block';
+        container.innerHTML = '';
+        
+        damageResults.forEach(result => {
+            if (!result) return;
+            
+            const damageDiv = document.createElement('div');
+            damageDiv.className = 'mt-2 p-2 bg-light rounded';
+            
+            const rolls = result.rolls || [];
+            const diceStr = rolls.join(', ');
+            const bonusStr = result.modifier > 0 ? 
+                ` + ${result.modifier}` : 
+                (result.modifier < 0 ? ` - ${Math.abs(result.modifier)}` : '');
+            
+            damageDiv.innerHTML = `
+                <h6 class="${result.isCritical ? 'text-success' : ''}">Damage: ${result.attackName}</h6>
+                <div><strong>Dice:</strong> ${diceStr}</div>
+                <div><strong>Modifier:</strong> ${bonusStr}</div>
+                <div><strong>Total:</strong> ${result.total} ${result.type}</div>
+            `;
+            
+            container.appendChild(damageDiv);
+        });
+    }
+    
+    /**
      * Renders the battlefield visualization
      */
     function renderBattlefield() {
@@ -786,9 +869,62 @@ const ConjureAnimalsManager = (function() {
             e.preventDefault();
             e.stopPropagation(); // Stop propagation to prevent battlefield click handler
             
+            // Handle group selection with shift key
+            if (e.shiftKey) {
+                // Toggle selection for this element
+                const creatureId = element.dataset.creatureId;
+                if (creatureId) {
+                    const index = summonedCreatures.findIndex(c => c.id === creatureId);
+                    if (index !== -1) {
+                        summonedCreatures[index].selected = !summonedCreatures[index].selected;
+                        renderBattlefield();
+                        return; // Don't start dragging, just toggle selection
+                    }
+                }
+                
+                const enemyId = element.dataset.enemyId;
+                if (enemyId) {
+                    const index = enemyTokens.findIndex(e => e.id === enemyId);
+                    if (index !== -1) {
+                        enemyTokens[index].selected = !enemyTokens[index].selected;
+                        renderBattlefield();
+                        return; // Don't start dragging, just toggle selection
+                    }
+                }
+            }
+            
             // Get cursor position
             pos3 = e.clientX;
             pos4 = e.clientY;
+            
+            // Check if this is a selected creature
+            const isSelectedCreature = element.classList.contains('token-selected');
+            
+            // If not selected and not shift key, deselect all others
+            if (!isSelectedCreature && !e.shiftKey) {
+                // Deselect all creatures except this one
+                summonedCreatures.forEach(c => c.selected = false);
+                enemyTokens.forEach(e => e.selected = false);
+                
+                // Select this one if it's a token
+                const creatureId = element.dataset.creatureId;
+                if (creatureId) {
+                    const index = summonedCreatures.findIndex(c => c.id === creatureId);
+                    if (index !== -1) {
+                        summonedCreatures[index].selected = true;
+                    }
+                }
+                
+                const enemyId = element.dataset.enemyId;
+                if (enemyId) {
+                    const index = enemyTokens.findIndex(e => e.id === enemyId);
+                    if (index !== -1) {
+                        enemyTokens[index].selected = true;
+                    }
+                }
+                
+                renderBattlefield();
+            }
             
             document.onmouseup = closeDragElement;
             document.onmousemove = elementDrag;
@@ -797,35 +933,71 @@ const ConjureAnimalsManager = (function() {
         function elementDrag(e) {
             e.preventDefault();
             
-            // Calculate new position
+            // Calculate movement delta
             pos1 = pos3 - e.clientX;
             pos2 = pos4 - e.clientY;
             pos3 = e.clientX;
             pos4 = e.clientY;
             
-            // Set element's new position
-            const newTop = element.offsetTop - pos2;
-            const newLeft = element.offsetLeft - pos1;
-            element.style.top = `${newTop}px`;
-            element.style.left = `${newLeft}px`;
+            // Check if this is a selected token or if there are any selected tokens
+            const isSelectedToken = element.classList.contains('token-selected');
+            const hasSelectedTokens = document.querySelectorAll('.token-selected').length > 0;
             
-            // Update creature position if this is a creature token
-            const creatureId = element.dataset.creatureId;
-            if (creatureId) {
-                const index = summonedCreatures.findIndex(c => c.id === creatureId);
-                if (index !== -1) {
-                    summonedCreatures[index].position.x = newLeft;
-                    summonedCreatures[index].position.y = newTop;
+            if (isSelectedToken) {
+                // Move all selected tokens
+                document.querySelectorAll('.token-selected').forEach(token => {
+                    // Set token's new position
+                    const newTop = token.offsetTop - pos2;
+                    const newLeft = token.offsetLeft - pos1;
+                    token.style.top = `${newTop}px`;
+                    token.style.left = `${newLeft}px`;
+                    
+                    // Update creature position if this is a creature token
+                    const creatureId = token.dataset.creatureId;
+                    if (creatureId) {
+                        const index = summonedCreatures.findIndex(c => c.id === creatureId);
+                        if (index !== -1) {
+                            summonedCreatures[index].position.x = newLeft;
+                            summonedCreatures[index].position.y = newTop;
+                        }
+                    }
+                    
+                    // Update enemy position if this is an enemy token
+                    const enemyId = token.dataset.enemyId;
+                    if (enemyId) {
+                        const index = enemyTokens.findIndex(e => e.id === enemyId);
+                        if (index !== -1) {
+                            enemyTokens[index].position.x = newLeft;
+                            enemyTokens[index].position.y = newTop;
+                        }
+                    }
+                });
+            } else if (!hasSelectedTokens) {
+                // Move just this token if no tokens are selected
+                // Set element's new position
+                const newTop = element.offsetTop - pos2;
+                const newLeft = element.offsetLeft - pos1;
+                element.style.top = `${newTop}px`;
+                element.style.left = `${newLeft}px`;
+                
+                // Update creature position if this is a creature token
+                const creatureId = element.dataset.creatureId;
+                if (creatureId) {
+                    const index = summonedCreatures.findIndex(c => c.id === creatureId);
+                    if (index !== -1) {
+                        summonedCreatures[index].position.x = newLeft;
+                        summonedCreatures[index].position.y = newTop;
+                    }
                 }
-            }
-            
-            // Update enemy position if this is an enemy token
-            const enemyId = element.dataset.enemyId;
-            if (enemyId) {
-                const index = enemyTokens.findIndex(e => e.id === enemyId);
-                if (index !== -1) {
-                    enemyTokens[index].position.x = newLeft;
-                    enemyTokens[index].position.y = newTop;
+                
+                // Update enemy position if this is an enemy token
+                const enemyId = element.dataset.enemyId;
+                if (enemyId) {
+                    const index = enemyTokens.findIndex(e => e.id === enemyId);
+                    if (index !== -1) {
+                        enemyTokens[index].position.x = newLeft;
+                        enemyTokens[index].position.y = newTop;
+                    }
                 }
             }
         }

@@ -969,6 +969,100 @@ const UIManager = (function() {
                 rollAttacks(attack, numAttackers, attackType, targetAC);
             });
         }
+        
+        // Add event listener for "Roll All Attacks" button if it exists
+        const rollAllAttacksBtn = document.getElementById('rollAllAttacksBtn');
+        if (rollAllAttacksBtn) {
+            rollAllAttacksBtn.addEventListener('click', () => {
+                // Get attack parameters
+                const numAttackers = parseInt(document.getElementById('numAttackers').value) || 1;
+                const attackType = document.getElementById('attackType').value;
+                const targetAC = parseInt(document.getElementById('targetAC').value) || 15;
+                
+                // Initialize results
+                let totalHits = 0;
+                let totalMisses = 0;
+                let totalDamage = 0;
+                
+                // Clear previous results
+                elements.combatResults.innerHTML = '';
+                
+                // Roll attacks for each attacker and each attack type
+                for (let i = 0; i < numAttackers; i++) {
+                    updatedAttackActions.forEach(attack => {
+                        const result = rollSingleAttack(attack, attackType, targetAC);
+                        
+                        // Update totals
+                        if (result.isHit) {
+                            totalHits++;
+                            totalDamage += parseInt(attack.damageAvg) || 0;
+                        } else {
+                            totalMisses++;
+                        }
+                        
+                        // Append to results
+                        const resultElement = document.createElement('div');
+                        resultElement.className = 'attack-result';
+                        resultElement.innerHTML = `
+                            <p><strong>${attack.name} (Attacker #${i+1}):</strong> ${result.roll} + ${attack.attackBonus} = ${result.total}</p>
+                            <p>Result: ${result.isHit ? 'Hit' : 'Miss'}</p>
+                        `;
+                        
+                        elements.combatResults.appendChild(resultElement);
+                    });
+                }
+                
+                // Add summary
+                const summaryElement = document.createElement('div');
+                summaryElement.className = 'attack-summary';
+                summaryElement.innerHTML = `
+                    <div class="alert alert-info mt-3">
+                        <h5>Summary</h5>
+                        <p>Total Hits: ${totalHits}</p>
+                        <p>Total Misses: ${totalMisses}</p>
+                        <p>Estimated Damage: ${totalDamage}</p>
+                    </div>
+                `;
+                
+                elements.combatResults.appendChild(summaryElement);
+            });
+        }
+    }
+    
+    /**
+     * Roll a single attack
+     * @param {Object} attack - Attack to roll
+     * @param {string} attackType - Type of attack (normal, advantage, disadvantage)
+     * @param {number} targetAC - Target's armor class
+     * @returns {Object} Attack result
+     */
+    function rollSingleAttack(attack, attackType, targetAC) {
+        // Roll d20
+        let roll1 = Math.floor(Math.random() * 20) + 1;
+        let roll2 = Math.floor(Math.random() * 20) + 1;
+        let finalRoll;
+        
+        // Handle advantage/disadvantage
+        if (attackType === 'advantage') {
+            finalRoll = Math.max(roll1, roll2);
+        } else if (attackType === 'disadvantage') {
+            finalRoll = Math.min(roll1, roll2);
+        } else {
+            finalRoll = roll1;
+        }
+        
+        // Add attack bonus
+        const attackBonus = parseInt(attack.attackBonus) || 0;
+        const total = finalRoll + attackBonus;
+        
+        // Determine if hit
+        const isHit = finalRoll === 20 || total >= targetAC;
+        
+        return {
+            roll: finalRoll,
+            total,
+            isHit
+        };
     }
     
     /**

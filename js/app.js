@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
         applyCRFilter: document.getElementById('applyCRFilter'),
         sizeFilters: document.querySelectorAll('.size-filter'),
         showFavorites: document.getElementById('showFavorites'),
+        backToListBtn: document.getElementById('backToListBtn'),
         resetFilters: document.getElementById('resetFilters'),
         
         // Action buttons
@@ -251,6 +252,23 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update button appearances
             this.classList.remove('btn-outline-success');
             this.classList.add('btn-success');
+            
+            // Show back button
+            document.getElementById('backToListBtn').style.display = 'block';
+            this.style.display = 'none';
+        });
+        
+        // Back to list button
+        document.getElementById('backToListBtn').addEventListener('click', function() {
+            // Reset filters and show all beasts
+            UIManager.resetFilters();
+            UIManager.applyFilters();
+            
+            // Update button appearances
+            this.style.display = 'none';
+            elements.showFavorites.style.display = 'block';
+            elements.showFavorites.classList.remove('btn-success');
+            elements.showFavorites.classList.add('btn-outline-success');
         });
         
         // Reset filters
@@ -281,9 +299,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Reset sort dropdown
             document.getElementById('sortDropdown').textContent = 'Sort: Name (A-Z)';
             
-            // Reset favorites button
+            // Reset favorites and back button
             elements.showFavorites.classList.remove('btn-success');
             elements.showFavorites.classList.add('btn-outline-success');
+            elements.showFavorites.style.display = 'block';
+            elements.backToListBtn.style.display = 'none';
         });
         
         // Wildshape button
