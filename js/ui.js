@@ -1,4 +1,26 @@
-/**
+    /**
+     * Select all animal tiles
+     */
+    function selectAllAnimals() {
+        const animalTiles = document.querySelectorAll('.animal-tile');
+        
+        animalTiles.forEach(tile => {
+            const animalId = tile.dataset.animalId;
+            selectAnimalTile(tile, animalId);
+        });
+    }
+    
+    /**
+     * Deselect all animal tiles
+     */
+    function selectNoAnimals() {
+        const animalTiles = document.querySelectorAll('.animal-tile');
+        
+        animalTiles.forEach(tile => {
+            const animalId = tile.dataset.animalId;
+            deselectAnimalTile(tile, animalId);
+        });
+    }/**
  * ui.js - UI management module for the Druid's Assistant
  * Handles rendering beasts, statblocks, and UI updates
  */
@@ -21,6 +43,7 @@ const UIManager = (function() {
         // Statblock display
         statblockDisplay: document.getElementById('statblockDisplay'),
         wildshapeButton: document.getElementById('wildshapeButton'),
+        conjureAnimalsButton: document.getElementById('conjureAnimalsButton'),
         favoriteButton: document.getElementById('favoriteButton'),
         
         // Wildshape tab
@@ -234,6 +257,7 @@ const UIManager = (function() {
                 
                 // Enable buttons
                 elements.wildshapeButton.disabled = false;
+                elements.conjureAnimalsButton.disabled = false;
                 elements.favoriteButton.disabled = false;
                 
                 // Update favorite button state
@@ -736,6 +760,1239 @@ const UIManager = (function() {
         applyFilters();
     }
     
+        // Conjure Animals Tab State Variables
+    let currentSummonedBeast = null;
+    let selectedAnimals = [];
+    let battlefieldTokens = [];
+    let criticalHits = {};
+    
+    /**
+     * Initializes the Conjure Animals tab with the selected beast
+     * @param {Object} beast - Beast object to summon
+     */
+    function initConjureAnimalsTab(beast) {
+        // Store the current beast
+        currentSummonedBeast = beast;
+        
+        // Reset state
+        selectedAnimals = [];
+        battlefieldTokens = [];
+        criticalHits = {};
+        
+        // Calculate number of creatures based on CR
+        const cr = parseFloat(beast.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
+        let numCreatures = 1;
+        
+        if (cr <= 0.25) numCreatures = 8;
+        else if (cr <= 0.5) numCreatures = 4;
+        else if (cr <= 1) numCreatures = 2;
+        
+        // Render statblock
+        renderConjureStatblock(beast);
+        
+        // Create animal tiles
+        createAnimalTiles(beast, numCreatures);
+        
+        // Create battlefield tokens
+        createBattlefieldTokens(numCreatures);
+    }
+    
+    /**
+     * Renders a statblock in the Conjure Animals tab
+     * @param {Object} beast - Beast object to render
+     */
+    function renderConjureStatblock(beast) {
+        // Get statblock HTML
+        const statblockHTML = createStatblockHTML(beast);
+        
+        // Update Conjure tab statblock
+        document.getElementById('conjure-statblock').innerHTML = statblockHTML;
+    }
+    
+    /**
+     * Creates a statblock HTML string
+     * @param {Object} beast - Beast object
+     * @returns {string} HTML string of statblock
+     */
+    function createStatblockHTML(beast) {
+        // This is a full version that shows all information, similar to renderStatblock
+        // Parse ability scores
+        const strParsed = parseAbilityScore(beast.abilities.str);
+        const dexParsed = parseAbilityScore(beast.abilities.dex);
+        const conParsed = parseAbilityScore(beast.abilities.con);
+        const intParsed = parseAbilityScore(beast.abilities.int);
+        const wisParsed = parseAbilityScore(beast.abilities.wis);
+        const chaParsed = parseAbilityScore(beast.abilities.cha);
+        
+        let html = `
+            <div class="statblock-container">
+                <h2 class="statblock-name">${beast.name}</h2>
+                <p class="statblock-subtitle">${beast.size} ${beast.type}${beast.subtype ? ` (${beast.subtype})` : ''}, ${beast.alignment}</p>
+                <div class="statblock-separator"></div>
+                
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Armor Class</span>
+                    <span class="statblock-property-value"> ${beast.ac}</span>
+                </div>
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Hit Points</span>
+                    <span class="statblock-property-value"> ${beast.hp}</span>
+                </div>
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Speed</span>
+                    <span class="statblock-property-value"> ${beast.speed}</span>
+                </div>
+                
+                <div class="statblock-separator"></div>
+                
+                <div class="statblock-ability-scores">
+                    <div class="statblock-ability">
+                        <div class="statblock-ability-name">STR</div>
+                        <div class="statblock-ability-score">${strParsed.score}</div>
+                        <div class="statblock-ability-mod">(${strParsed.mod})</div>
+                    </div>
+                    <div class="statblock-ability">
+                        <div class="statblock-ability-name">DEX</div>
+                        <div class="statblock-ability-score">${dexParsed.score}</div>
+                        <div class="statblock-ability-mod">(${dexParsed.mod})</div>
+                    </div>
+                    <div class="statblock-ability">
+                        <div class="statblock-ability-name">CON</div>
+                        <div class="statblock-ability-score">${conParsed.score}</div>
+                        <div class="statblock-ability-mod">(${conParsed.mod})</div>
+                    </div>
+                    <div class="statblock-ability">
+                        <div class="statblock-ability-name">INT</div>
+                        <div class="statblock-ability-score">${intParsed.score}</div>
+                        <div class="statblock-ability-mod">(${intParsed.mod})</div>
+                    </div>
+                    <div class="statblock-ability">
+                        <div class="statblock-ability-name">WIS</div>
+                        <div class="statblock-ability-score">${wisParsed.score}</div>
+                        <div class="statblock-ability-mod">(${wisParsed.mod})</div>
+                    </div>
+                    <div class="statblock-ability">
+                        <div class="statblock-ability-name">CHA</div>
+                        <div class="statblock-ability-score">${chaParsed.score}</div>
+                        <div class="statblock-ability-mod">(${chaParsed.mod})</div>
+                    </div>
+                </div>
+                
+                <div class="statblock-separator"></div>`;
+        
+        // Add skills if present
+        if (beast.skills) {
+            html += `
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Skills</span>
+                    <span class="statblock-property-value"> ${beast.skills}</span>
+                </div>
+            `;
+        }
+        
+        // Add damage resistances if present
+        if (beast.damageResistances) {
+            html += `
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Damage Resistances</span>
+                    <span class="statblock-property-value"> ${beast.damageResistances}</span>
+                </div>
+            `;
+        }
+        
+        // Add damage vulnerabilities if present
+        if (beast.damageVulnerabilities) {
+            html += `
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Damage Vulnerabilities</span>
+                    <span class="statblock-property-value"> ${beast.damageVulnerabilities}</span>
+                </div>
+            `;
+        }
+        
+        // Add damage immunities if present
+        if (beast.damageImmunities) {
+            html += `
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Damage Immunities</span>
+                    <span class="statblock-property-value"> ${beast.damageImmunities}</span>
+                </div>
+            `;
+        }
+        
+        // Add condition immunities if present
+        if (beast.conditionImmunities) {
+            html += `
+                <div class="statblock-property">
+                    <span class="statblock-property-name">Condition Immunities</span>
+                    <span class="statblock-property-value"> ${beast.conditionImmunities}</span>
+                </div>
+            `;
+        }
+        
+        // Add senses
+        html += `
+            <div class="statblock-property">
+                <span class="statblock-property-name">Senses</span>
+                <span class="statblock-property-value"> ${beast.senses}</span>
+            </div>
+        `;
+        
+        // Add languages
+        html += `
+            <div class="statblock-property">
+                <span class="statblock-property-name">Languages</span>
+                <span class="statblock-property-value"> ${beast.languages}</span>
+            </div>
+        `;
+        
+        // Add challenge rating
+        html += `
+            <div class="statblock-property">
+                <span class="statblock-property-name">Challenge</span>
+                <span class="statblock-property-value"> ${beast.cr} (${beast.xp})</span>
+            </div>
+        `;
+        
+        // Add traits
+        if (beast.traits && beast.traits.length > 0) {
+            html += `<div class="statblock-separator"></div>`;
+            
+            beast.traits.forEach(trait => {
+                // Format text bounded by asterisks as italics
+                const formattedDesc = trait.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                
+                html += `
+                    <div class="statblock-property">
+                        <div class="statblock-property-name">${trait.name}</div>
+                        <div class="statblock-property-value">${formattedDesc}</div>
+                    </div>
+                `;
+            });
+        }
+        
+        // Add actions section if present
+        if (beast.actions && beast.actions.length > 0) {
+            html += `
+                <div class="statblock-separator"></div>
+                <div class="statblock-action-title">Actions</div>
+            `;
+            
+            beast.actions.forEach(action => {
+                // Format text bounded by asterisks as italics
+                const formattedDesc = action.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                
+                html += `
+                    <div class="statblock-action">
+                        <div class="statblock-action-name">${action.name}.</div>
+                        <div>${formattedDesc}</div>
+                    </div>
+                `;
+            });
+        }
+        
+        // Add reactions if present
+        if (beast.reactions && beast.reactions.length > 0) {
+            html += `
+                <div class="statblock-separator"></div>
+                <div class="statblock-action-title">Reactions</div>
+            `;
+            
+            beast.reactions.forEach(reaction => {
+                // Format text bounded by asterisks as italics
+                const formattedDesc = reaction.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                
+                html += `
+                    <div class="statblock-action">
+                        <div class="statblock-action-name">${reaction.name}.</div>
+                        <div>${formattedDesc}</div>
+                    </div>
+                `;
+            });
+        }
+        
+        // Add legendary actions if present
+        if (beast.legendaryActions && beast.legendaryActions.length > 0) {
+            html += `
+                <div class="statblock-separator"></div>
+                <div class="statblock-action-title">Legendary Actions</div>
+            `;
+            
+            beast.legendaryActions.forEach(legendaryAction => {
+                // Format text bounded by asterisks as italics
+                const formattedDesc = legendaryAction.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                
+                html += `
+                    <div class="statblock-action">
+                        <div class="statblock-action-name">${legendaryAction.name}.</div>
+                        <div>${formattedDesc}</div>
+                    </div>
+                `;
+            });
+        }
+        
+        // Add description if present
+        if (beast.description) {
+            html += `
+                <div class="statblock-separator"></div>
+                <div class="statblock-description">
+                    ${beast.description.replace(/\n/g, '<br>')}
+                </div>
+            `;
+        }
+        
+        // Close container
+        html += `</div>`;
+        
+        return html;
+    }
+    
+    /**
+     * Creates tiles for summoned creatures
+     * @param {Object} beast - Beast object for summoned creatures
+     * @param {number} numCreatures - Number of creatures to summon
+     */
+    function createAnimalTiles(beast, numCreatures) {
+        const container = document.getElementById('conjured-animals-list');
+        container.innerHTML = '';
+        
+        const maxHP = extractMaxHP(beast.hp);
+        
+        for (let i = 1; i <= numCreatures; i++) {
+            const tileElement = document.createElement('div');
+            tileElement.className = 'col-md-4 col-sm-6 mb-3';
+            tileElement.innerHTML = `
+                <div class="animal-tile" data-animal-id="${i}">
+                    <h5 class="mb-2">${beast.name} #${i}</h5>
+                    <div class="animal-hp">
+                        <div class="progress w-100 me-2">
+                            <div class="progress-bar bg-success" style="width: 100%" 
+                                 role="progressbar" aria-valuenow="${maxHP}" 
+                                 aria-valuemin="0" aria-valuemax="${maxHP}">
+                              ${maxHP}/${maxHP}
+                            </div>
+                        </div>
+                        <div class="hp-controls">
+                            <button class="btn btn-sm btn-outline-danger damage-btn">-</button>
+                            <button class="btn btn-sm btn-outline-success heal-btn">+</button>
+                        </div>
+                    </div>
+                    <div class="attack-section">
+                        <div class="d-flex mb-2">
+                            <select class="form-select form-select-sm attack-select me-2">
+                                ${createAttackOptionsHTML(beast)}
+                            </select>
+                            <select class="form-select form-select-sm advantage-select me-2">
+                                <option value="normal">Normal</option>
+                                <option value="advantage">Advantage</option>
+                                <option value="disadvantage">Disadvantage</option>
+                            </select>
+                            <button class="btn btn-sm btn-primary attack-roll-btn">Roll</button>
+                        </div>
+                        <div class="d-flex">
+                            <button class="btn btn-sm btn-danger damage-roll-btn me-2">Damage</button>
+                            <div class="roll-result"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(tileElement);
+            
+            // Add event listeners to the new tile
+            addAnimalTileEventListeners(tileElement, beast);
+        }
+    }
+    
+    /**
+     * Extracts the maximum HP value from HP string
+     * @param {string} hpString - HP string (e.g., "45 (6d10 + 12)")
+     * @returns {number} Max HP value
+     */
+    function extractMaxHP(hpString) {
+        if (!hpString) return 10;
+        
+        // Try to get just the numeric part before any parentheses
+        const match = hpString.match(/^(\d+)/);
+        if (match && match[1]) {
+            return parseInt(match[1]);
+        }
+        
+        // Fallback
+        return 10;
+    }
+    
+    /**
+     * Creates options for attack select dropdown
+     * @param {Object} beast - Beast object
+     * @returns {string} HTML for select options
+     */
+    function createAttackOptionsHTML(beast) {
+        let options = '<option value="all">All Attacks</option>';
+        
+        if (beast.actions) {
+            beast.actions.forEach(action => {
+                // Check if it's an attack action
+                if (action.desc && (action.desc.includes('Weapon Attack:') || action.desc.includes('Melee Attack:') || action.desc.includes('Ranged Attack:'))) {
+                    options += `<option value="${action.name}">${action.name}</option>`;
+                }
+            });
+        }
+        
+        return options;
+    }
+    
+    /**
+     * Adds event listeners to animal tile
+     * @param {Element} tileElement - Tile element
+     * @param {Object} beast - Beast object
+     */
+    function addAnimalTileEventListeners(tileElement, beast) {
+        const tile = tileElement.querySelector('.animal-tile');
+        const animalId = tile.dataset.animalId;
+        
+        // Selection handling via click
+        tile.addEventListener('click', (e) => {
+            // Don't trigger if clicking on a button or select
+            if (!e.target.closest('button') && !e.target.closest('select')) {
+                toggleAnimalTileSelection(tile, animalId);
+            }
+        });
+        
+        // HP modification
+        tile.querySelector('.damage-btn').addEventListener('click', () => {
+            promptHPChange(animalId, -1, beast);
+        });
+        
+        tile.querySelector('.heal-btn').addEventListener('click', () => {
+            promptHPChange(animalId, 1, beast);
+        });
+        
+        // Attack roll
+        tile.querySelector('.attack-roll-btn').addEventListener('click', () => {
+            const attackType = tile.querySelector('.attack-select').value;
+            handleAttackRoll(animalId, attackType, beast);
+        });
+        
+        // Damage roll
+        tile.querySelector('.damage-roll-btn').addEventListener('click', () => {
+            const attackType = tile.querySelector('.attack-select').value;
+            handleDamageRoll(animalId, attackType, beast);
+        });
+    }
+    
+    /**
+     * Toggles animal tile selection
+     * @param {Element} tile - Tile element
+     * @param {string} animalId - Animal ID
+     */
+    function toggleAnimalTileSelection(tile, animalId) {
+        if (tile.classList.contains('selected')) {
+            deselectAnimalTile(tile, animalId);
+        } else {
+            selectAnimalTile(tile, animalId);
+        }
+    }
+    
+    /**
+     * Selects an animal tile
+     * @param {Element} tile - Tile element
+     * @param {string} animalId - Animal ID
+     */
+    function selectAnimalTile(tile, animalId) {
+        tile.classList.add('selected');
+        
+        // Update selected animals list
+        if (!selectedAnimals.includes(animalId)) {
+            selectedAnimals.push(animalId);
+        }
+        
+        // Also update battlefield token selection
+        updateBattlefieldSelections();
+    }
+    
+    /**
+     * Deselects an animal tile
+     * @param {Element} tile - Tile element
+     * @param {string} animalId - Animal ID
+     */
+    function deselectAnimalTile(tile, animalId) {
+        tile.classList.remove('selected');
+        
+        // Update selected animals list
+        selectedAnimals = selectedAnimals.filter(id => id !== animalId);
+        
+        // Also update battlefield token selection
+        updateBattlefieldSelections();
+    }
+    
+    /**
+     * Creates battlefield tokens for summoned animals
+     * @param {number} numCreatures - Number of creatures to summon
+     */
+    function createBattlefieldTokens(numCreatures) {
+        const battlefield = document.getElementById('battlefield');
+        battlefield.innerHTML = '';
+        
+        // Clear existing tokens
+        battlefieldTokens = [];
+        
+        // Calculate tokens per row based on battlefield width
+        const tokenSize = 45; // Size + margin
+        const startX = 20;
+        const startY = 20;
+        const tokensPerRow = Math.min(8, numCreatures); // Maximum 8 tokens per row
+        
+        // Create tokens for each animal in a grid formation
+        for (let i = 1; i <= numCreatures; i++) {
+            const token = document.createElement('div');
+            token.className = 'battlefield-token animal';
+            token.dataset.animalId = i;
+            token.textContent = i;
+            
+            // Calculate position in grid
+            const row = Math.floor((i - 1) / tokensPerRow);
+            const col = (i - 1) % tokensPerRow;
+            
+            const x = startX + (col * tokenSize);
+            const y = startY + (row * tokenSize);
+            
+            token.style.left = x + 'px';
+            token.style.top = y + 'px';
+            
+            // Make token draggable
+            makeDraggable(token);
+            
+            // Selection handling
+            token.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent battlefield click
+                toggleBattlefieldTokenSelection(token);
+            });
+            
+            battlefield.appendChild(token);
+            battlefieldTokens.push({
+                element: token,
+                animalId: i,
+                type: 'animal'
+            });
+        }
+        
+        initBattlefield();
+    }
+    
+    /**
+     * Initializes battlefield interactions
+     */
+    function initBattlefield() {
+        const battlefield = document.getElementById('battlefield');
+        
+        let isSelecting = false;
+        let selectionBox = null;
+        let startX, startY;
+        
+        // Mouse down (start selection or dragging)
+        battlefield.addEventListener('mousedown', (e) => {
+            // Only start selection box if clicking directly on the battlefield
+            if (e.target === battlefield) {
+                // Clear existing selections first when starting a new selection box
+                document.querySelectorAll('.battlefield-token.selected').forEach(token => {
+                    token.classList.remove('selected');
+                });
+                selectedAnimals = [];
+                
+                // Update animal tiles to match
+                document.querySelectorAll('.animal-tile.selected').forEach(tile => {
+                    tile.classList.remove('selected');
+                });
+                
+                isSelecting = true;
+                startX = e.clientX - battlefield.getBoundingClientRect().left;
+                startY = e.clientY - battlefield.getBoundingClientRect().top;
+                
+                selectionBox = document.createElement('div');
+                selectionBox.className = 'selection-box';
+                selectionBox.style.left = startX + 'px';
+                selectionBox.style.top = startY + 'px';
+                selectionBox.style.width = '0px';
+                selectionBox.style.height = '0px';
+                
+                battlefield.appendChild(selectionBox);
+            }
+        });
+        
+        // Mouse move (update selection box)
+        battlefield.addEventListener('mousemove', (e) => {
+            if (isSelecting && selectionBox) {
+                const currentX = e.clientX - battlefield.getBoundingClientRect().left;
+                const currentY = e.clientY - battlefield.getBoundingClientRect().top;
+                
+                const width = currentX - startX;
+                const height = currentY - startY;
+                
+                // Set selection box size and position based on drag direction
+                if (width < 0) {
+                    selectionBox.style.left = currentX + 'px';
+                    selectionBox.style.width = Math.abs(width) + 'px';
+                } else {
+                    selectionBox.style.width = width + 'px';
+                }
+                
+                if (height < 0) {
+                    selectionBox.style.top = currentY + 'px';
+                    selectionBox.style.height = Math.abs(height) + 'px';
+                } else {
+                    selectionBox.style.height = height + 'px';
+                }
+            }
+        });
+        
+        // Mouse up (finish selection)
+        battlefield.addEventListener('mouseup', (e) => {
+            if (isSelecting) {
+                isSelecting = false;
+                
+                if (selectionBox) {
+                    // Get selection box bounds
+                    const boxRect = selectionBox.getBoundingClientRect();
+                    const battlefieldRect = battlefield.getBoundingClientRect();
+                    
+                    // Check which tokens are inside the selection box
+                    document.querySelectorAll('.battlefield-token').forEach(token => {
+                        const tokenRect = token.getBoundingClientRect();
+                        
+                        if (
+                            tokenRect.left >= boxRect.left &&
+                            tokenRect.right <= boxRect.right &&
+                            tokenRect.top >= boxRect.top &&
+                            tokenRect.bottom <= boxRect.bottom
+                        ) {
+                            // Select this token
+                            selectBattlefieldToken(token);
+                        }
+                    });
+                    
+                    // Remove selection box
+                    battlefield.removeChild(selectionBox);
+                    selectionBox = null;
+                }
+            }
+        });
+        
+        // Prevent default drag behavior
+        battlefield.addEventListener('dragstart', (e) => {
+            e.preventDefault();
+        });
+    }
+    
+    /**
+     * Makes an element draggable
+     * @param {Element} element - Element to make draggable
+     */
+    function makeDraggable(element) {
+        let isDragging = false;
+        let startX, startY;
+        let originalX, originalY;
+        
+        // For group dragging
+        let dragGroup = [];
+        let dragOffsets = [];
+        
+        element.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            originalX = element.offsetLeft;
+            originalY = element.offsetTop;
+            
+            // Prepare for group dragging if applicable
+            if (element.classList.contains('selected')) {
+                dragGroup = Array.from(document.querySelectorAll('.battlefield-token.selected'));
+                dragOffsets = dragGroup.map(el => ({
+                    x: el.offsetLeft,
+                    y: el.offsetTop
+                }));
+            } else {
+                dragGroup = [element];
+                dragOffsets = [{ x: originalX, y: originalY }];
+            }
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        });
+        
+        function handleMouseMove(e) {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            // Move each token in the drag group
+            dragGroup.forEach((token, index) => {
+                token.style.left = (dragOffsets[index].x + dx) + 'px';
+                token.style.top = (dragOffsets[index].y + dy) + 'px';
+            });
+        }
+        
+        function handleMouseUp() {
+            isDragging = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        }
+    }
+    
+    /**
+     * Adds an enemy token to the battlefield
+     */
+    function addEnemyToken() {
+        const battlefield = document.getElementById('battlefield');
+        if (!battlefield) return;
+        
+        const enemyId = battlefieldTokens.filter(t => t.type === 'enemy').length + 1;
+        
+        const token = document.createElement('div');
+        token.className = 'battlefield-token enemy';
+        token.dataset.enemyId = enemyId;
+        token.textContent = 'E' + enemyId;
+        
+        // Random position within battlefield
+        const x = 50 + Math.random() * (battlefield.offsetWidth - 100);
+        const y = 50 + Math.random() * (battlefield.offsetHeight - 100);
+        
+        token.style.left = x + 'px';
+        token.style.top = y + 'px';
+        
+        // Make token draggable
+        makeDraggable(token);
+        
+        // Selection handling
+        token.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent battlefield click
+            toggleBattlefieldTokenSelection(token);
+        });
+        
+        battlefield.appendChild(token);
+        battlefieldTokens.push({
+            element: token,
+            enemyId: enemyId,
+            type: 'enemy'
+        });
+    }
+    
+    /**
+     * Toggle battlefield token selection
+     * @param {Element} token - Token element
+     */
+    function toggleBattlefieldTokenSelection(token) {
+        if (token.classList.contains('selected')) {
+            deselectBattlefieldToken(token);
+        } else {
+            selectBattlefieldToken(token);
+        }
+    }
+    
+    /**
+     * Deselect a battlefield token and update tile
+     * @param {Element} token - Token element
+     */
+    function deselectBattlefieldToken(token) {
+        token.classList.remove('selected');
+        
+        // If it's an animal token, update the corresponding tile
+        if (token.dataset.animalId) {
+            const animalId = token.dataset.animalId;
+            const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
+            
+            if (tile) {
+                // Update tile and checkbox
+                tile.classList.remove('selected');
+                const selectionToggle = tile.querySelector('.selection-toggle');
+                if (selectionToggle) selectionToggle.checked = false;
+                
+                // Update selected animals list
+                selectedAnimals = selectedAnimals.filter(id => id !== animalId);
+            }
+        }
+    }
+    
+    /**
+     * Select a battlefield token (without toggling)
+     * @param {Element} token - Token element
+     */
+    function selectBattlefieldToken(token) {
+        token.classList.add('selected');
+        
+        // If it's an animal token, update the corresponding tile
+        if (token.dataset.animalId) {
+            const animalId = token.dataset.animalId;
+            const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
+            
+            if (tile) {
+                // Update tile and checkbox
+                tile.classList.add('selected');
+                const selectionToggle = tile.querySelector('.selection-toggle');
+                if (selectionToggle) selectionToggle.checked = true;
+                
+                // Update selected animals list
+                if (!selectedAnimals.includes(animalId)) {
+                    selectedAnimals.push(animalId);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Update battlefield token selections based on animal tile selections
+     */
+    function updateBattlefieldSelections() {
+        // Clear all selections first
+        document.querySelectorAll('.battlefield-token.animal').forEach(token => {
+            token.classList.remove('selected');
+        });
+        
+        // Add selections based on selectedAnimals
+        selectedAnimals.forEach(animalId => {
+            const token = document.querySelector(`.battlefield-token.animal[data-animal-id="${animalId}"]`);
+            if (token) {
+                token.classList.add('selected');
+            }
+            
+            // Also update checkbox state
+            const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
+            if (tile) {
+                const checkbox = tile.querySelector('.selection-toggle');
+                if (checkbox) checkbox.checked = true;
+            }
+        });
+        
+        // Ensure all unselected tiles have unchecked boxes
+        document.querySelectorAll('.animal-tile:not(.selected)').forEach(tile => {
+            const checkbox = tile.querySelector('.selection-toggle');
+            if (checkbox) checkbox.checked = false;
+        });
+    }
+    
+    /**
+     * Prompt for HP change
+     * @param {string} animalId - Animal ID
+     * @param {number} direction - 1 for healing, -1 for damage
+     * @param {Object} beast - Beast object
+     */
+    function promptHPChange(animalId, direction, beast) {
+        const amount = prompt(`Enter amount to ${direction > 0 ? 'heal' : 'damage'} creature #${animalId}:`);
+        if (amount === null) return;
+        
+        const numAmount = parseInt(amount);
+        if (isNaN(numAmount) || numAmount <= 0) return;
+        
+        updateAnimalHP(animalId, direction * numAmount, beast);
+    }
+    
+    /**
+     * Update animal HP
+     * @param {string} animalId - Animal ID
+     * @param {number} change - Amount to change HP by (positive for healing, negative for damage)
+     * @param {Object} beast - Beast object
+     */
+    function updateAnimalHP(animalId, change, beast) {
+        const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
+        if (!tile) return;
+        
+        const progressBar = tile.querySelector('.progress-bar');
+        const maxHP = extractMaxHP(beast.hp);
+        
+        // Get current HP
+        let currentHP = parseInt(progressBar.textContent.split('/')[0]);
+        
+        // Apply change
+        currentHP = Math.max(0, Math.min(maxHP, currentHP + change));
+        
+        // Update display
+        progressBar.textContent = `${currentHP}/${maxHP}`;
+        progressBar.style.width = ((currentHP / maxHP) * 100) + '%';
+        
+        // Update class based on health percentage
+        progressBar.className = 'progress-bar';
+        if (currentHP <= 0) {
+            progressBar.classList.add('bg-danger');
+        } else if (currentHP < maxHP / 2) {
+            progressBar.classList.add('bg-warning');
+        } else {
+            progressBar.classList.add('bg-success');
+        }
+    }
+    
+    /**
+     * Handle attack roll for a single animal
+     * @param {string} animalId - Animal ID
+     * @param {string} attackType - Attack type ("all" or specific attack name)
+     * @param {Object} beast - Beast object
+     */
+    function handleAttackRoll(animalId, attackType, beast) {
+        // Get advantage setting for this specific animal
+        const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
+        if (!tile) return;
+        
+        const advantage = tile.querySelector('.advantage-select').value;
+        let results = [];
+        
+        // Get attacks to roll
+        const attacks = getAttacksToRoll(attackType, beast);
+        
+        // Roll for each attack
+        attacks.forEach(attack => {
+            // Extract attack bonus
+            const attackBonus = extractAttackBonus(attack.desc);
+            
+            // Roll dice with advantage/disadvantage
+            const roll1 = rollD20();
+            const roll2 = rollD20();
+            
+            let effectiveRoll, rollsDisplay;
+            if (advantage === 'advantage') {
+                effectiveRoll = Math.max(roll1, roll2);
+                rollsDisplay = `${roll1}, ${roll2} (${effectiveRoll})`;
+            } else if (advantage === 'disadvantage') {
+                effectiveRoll = Math.min(roll1, roll2);
+                rollsDisplay = `${roll1}, ${roll2} (${effectiveRoll})`;
+            } else {
+                effectiveRoll = roll1;
+                rollsDisplay = `${roll1}`;
+            }
+            
+            // Add attack bonus
+            const total = effectiveRoll + attackBonus;
+            
+            // Check for critical hit
+            const isCritical = effectiveRoll === 20;
+            if (isCritical) {
+                if (!criticalHits[animalId]) criticalHits[animalId] = {};
+                criticalHits[animalId][attack.name] = true;
+            }
+            
+            // Save result
+            results.push({
+                attack: attack.name,
+                rolls: rollsDisplay,
+                bonus: attackBonus,
+                total: total,
+                critical: isCritical
+            });
+        });
+        
+        // Display results
+        displayRollResults(animalId, results, 'attack');
+    }
+    
+    /**
+     * Extract attack bonus from action description
+     * @param {string} desc - Action description
+     * @returns {number} Attack bonus
+     */
+    function extractAttackBonus(desc) {
+        if (!desc) return 0;
+        
+        const match = desc.match(/\+([0-9]+)\s+to\s+hit/);
+        if (match && match[1]) {
+            return parseInt(match[1]);
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Handle damage roll for a single animal
+     * @param {string} animalId - Animal ID
+     * @param {string} attackType - Attack type ("all" or specific attack name)
+     * @param {Object} beast - Beast object
+     */
+    function handleDamageRoll(animalId, attackType, beast) {
+        let results = [];
+        
+        // Get attacks to roll
+        const attacks = getAttacksToRoll(attackType, beast);
+        
+        // Roll for each attack
+        attacks.forEach(attack => {
+            // Check if we have a critical hit for this attack
+            const isCritical = criticalHits[animalId] && criticalHits[animalId][attack.name];
+            
+            // Parse damage formula
+            const damageInfo = extractDamageFormula(attack.desc);
+            
+            if (damageInfo) {
+                // Roll damage dice
+                const { diceCount, diceType, bonus } = damageInfo;
+                let rolls = [];
+                
+                // Double dice on critical hit
+                const effectiveDiceCount = isCritical ? diceCount * 2 : diceCount;
+                
+                for (let i = 0; i < effectiveDiceCount; i++) {
+                    rolls.push(Math.floor(Math.random() * diceType) + 1);
+                }
+                
+                // Calculate total
+                const diceTotal = rolls.reduce((sum, roll) => sum + roll, 0);
+                const damageTotal = diceTotal + bonus;
+                
+                // Format details
+                const damageDetails = `${rolls.join(' + ')}${bonus ? ' + ' + bonus : ''} = ${damageTotal}`;
+                
+                // Save result
+                results.push({
+                    attack: attack.name,
+                    formula: `${diceCount}d${diceType}${bonus ? ' + ' + bonus : ''}`,
+                    damage: damageDetails,
+                    total: damageTotal,
+                    critical: isCritical
+                });
+            } else {
+                // Couldn't parse damage formula
+                results.push({
+                    attack: attack.name,
+                    formula: 'Unknown',
+                    damage: 'Could not calculate',
+                    total: 0,
+                    critical: isCritical
+                });
+            }
+        });
+        
+        // Clear critical hit flag after damage roll
+        if (criticalHits[animalId]) {
+            delete criticalHits[animalId];
+        }
+        
+        // Display results
+        displayRollResults(animalId, results, 'damage');
+    }
+    
+    /**
+     * Extract damage formula from action description
+     * @param {string} desc - Action description
+     * @returns {Object|null} Object with diceCount, diceType, and bonus
+     */
+    function extractDamageFormula(desc) {
+        if (!desc) return null;
+        
+        // Look for damage format like "13 (2d8 + 4)" or "7 (2d6)" inside the description
+        const match = desc.match(/\d+\s*\((\d+)d(\d+)(?:\s*\+\s*(\d+))?\)/);
+        
+        if (match) {
+            return {
+                diceCount: parseInt(match[1]),
+                diceType: parseInt(match[2]),
+                bonus: match[3] ? parseInt(match[3]) : 0
+            };
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Handle group attack roll
+     */
+    function handleGroupAttackRoll() {
+        if (!currentSummonedBeast || selectedAnimals.length === 0) {
+            alert('Please select at least one animal first');
+            return;
+        }
+        
+        // Get the global advantage setting
+        const advantageSelect = document.getElementById('advantage-select');
+        const advantage = advantageSelect ? advantageSelect.value : 'normal';
+        
+        // Get the attack type from the first selected animal
+        const firstAnimalTile = document.querySelector(`.animal-tile[data-animal-id="${selectedAnimals[0]}"]`);
+        if (!firstAnimalTile) return;
+        
+        const attackType = firstAnimalTile.querySelector('.attack-select').value;
+        
+        // Roll for each selected animal
+        selectedAnimals.forEach(animalId => {
+            // Override the individual animal's advantage setting with the global one
+            const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
+            if (tile) {
+                const animalAdvantageSelect = tile.querySelector('.advantage-select');
+                if (animalAdvantageSelect) {
+                    animalAdvantageSelect.value = advantage;
+                }
+            }
+            
+            handleAttackRoll(animalId, attackType, currentSummonedBeast);
+        });
+    }
+    
+    /**
+     * Handle group damage roll
+     */
+    function handleGroupDamageRoll() {
+        if (!currentSummonedBeast || selectedAnimals.length === 0) {
+            alert('Please select at least one animal first');
+            return;
+        }
+        
+        // Get the attack type from the first selected animal
+        const firstAnimalTile = document.querySelector(`.animal-tile[data-animal-id="${selectedAnimals[0]}"]`);
+        if (!firstAnimalTile) return;
+        
+        const attackType = firstAnimalTile.querySelector('.attack-select').value;
+        
+        // Roll for each selected animal and calculate total damage
+        let totalDamage = 0;
+        
+        selectedAnimals.forEach(animalId => {
+            // Get attacks to roll
+            const attacks = getAttacksToRoll(attackType, currentSummonedBeast);
+            
+            // Roll for each attack
+            attacks.forEach(attack => {
+                // Check if we have a critical hit for this attack
+                const isCritical = criticalHits[animalId] && criticalHits[animalId][attack.name];
+                
+                // Parse damage formula
+                const damageInfo = extractDamageFormula(attack.desc);
+                
+                if (damageInfo) {
+                    // Roll damage dice
+                    const { diceCount, diceType, bonus } = damageInfo;
+                    let rolls = [];
+                    
+                    // Double dice on critical hit
+                    const effectiveDiceCount = isCritical ? diceCount * 2 : diceCount;
+                    
+                    for (let i = 0; i < effectiveDiceCount; i++) {
+                        rolls.push(Math.floor(Math.random() * diceType) + 1);
+                    }
+                    
+                    // Calculate total
+                    const diceTotal = rolls.reduce((sum, roll) => sum + roll, 0);
+                    const damageTotal = diceTotal + bonus;
+                    
+                    // Add to total damage
+                    totalDamage += damageTotal;
+                }
+            });
+            
+            // Call normal damage roll to display results
+            handleDamageRoll(animalId, attackType, currentSummonedBeast);
+        });
+        
+        // Display total group damage
+        document.getElementById('total-group-damage').textContent = totalDamage;
+    }
+    
+    /**
+     * Display roll results in animal tile
+     * @param {string} animalId - Animal ID
+     * @param {Array} results - Array of roll results
+     * @param {string} rollType - Type of roll ('attack' or 'damage')
+     */
+    function displayRollResults(animalId, results, rollType) {
+        const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
+        if (!tile) return;
+        
+        const resultElement = tile.querySelector('.roll-result');
+        
+        // Build result HTML
+        let html = '';
+        
+        if (rollType === 'attack') {
+            results.forEach(result => {
+                html += `<div class="mb-2">
+                    <div class="fw-bold">${result.attack}:</div>
+                    <div class="${result.critical ? 'text-danger' : 'text-primary'}">
+                        <span class="badge bg-secondary me-1">Dice: ${result.rolls}</span>
+                        <span class="badge bg-secondary me-1">Bonus: +${result.bonus}</span>
+                        <span class="badge bg-${result.critical ? 'danger' : 'primary'} me-1">Total: ${result.total}</span>
+                        ${result.critical ? '<span class="badge bg-danger">CRITICAL HIT!</span>' : ''}
+                    </div>
+                </div>`;
+            });
+        } else if (rollType === 'damage') {
+            results.forEach(result => {
+                const damageDetail = result.damage.split('=');
+                html += `<div class="mb-2">
+                    <div class="fw-bold">${result.attack}:</div>
+                    <div class="text-danger">
+                        <span class="badge bg-secondary me-1">Formula: ${result.formula}</span>
+                        <span class="badge bg-secondary me-1">Rolls: ${damageDetail[0].trim()}</span>
+                        <span class="badge bg-danger me-1">Damage: ${damageDetail[1].trim()}</span>
+                        ${result.critical ? '<span class="badge bg-danger">CRITICAL HIT!</span>' : ''}
+                    </div>
+                </div>`;
+            });
+        }
+        
+        resultElement.innerHTML = html;
+        
+        // Ensure the tile grows with content
+        tile.style.height = 'auto';
+        tile.style.minHeight = '200px';
+    }
+    
+    /**
+     * Get attacks to roll based on selection
+     * @param {string} attackType - Attack type ("all" or specific attack name)
+     * @param {Object} beast - Beast object
+     * @returns {Array} Array of attack objects
+     */
+    function getAttacksToRoll(attackType, beast) {
+        let attacks = [];
+        
+        if (attackType === 'all') {
+            // Get all attacks
+            beast.actions.forEach(action => {
+                if (action.desc && (action.desc.includes('Weapon Attack:') || action.desc.includes('Melee Attack:') || action.desc.includes('Ranged Attack:'))) {
+                    attacks.push(action);
+                }
+            });
+        } else {
+            // Get specific attack
+            const attack = beast.actions.find(action => action.name === attackType);
+            if (attack) {
+                attacks.push(attack);
+            }
+        }
+        
+        return attacks;
+    }
+    
+    /**
+     * Select all animal tiles
+     */
+    function selectAllAnimals() {
+        const animalTiles = document.querySelectorAll('.animal-tile');
+        
+        animalTiles.forEach(tile => {
+            const animalId = tile.dataset.animalId;
+            selectAnimalTile(tile, animalId);
+        });
+    }
+    
+    /**
+     * Deselect all animal tiles
+     */
+    function selectNoAnimals() {
+        const animalTiles = document.querySelectorAll('.animal-tile');
+        
+        animalTiles.forEach(tile => {
+            const animalId = tile.dataset.animalId;
+            deselectAnimalTile(tile, animalId);
+        });
+    }
+    
+    /**
+     * Roll a d20
+     * @returns {number} Random number between 1 and 20
+     */
+    function rollD20() {
+        return Math.floor(Math.random() * 20) + 1;
+    }
+
     // Public API
     return {
         renderBeastList,
@@ -746,6 +2003,14 @@ const UIManager = (function() {
         applyFilters,
         showOnlyFavorites,
         resetFilters,
+        
+        // Conjure Animals tab functions
+        initConjureAnimalsTab,
+        addEnemyToken,
+        handleGroupAttackRoll,
+        handleGroupDamageRoll,
+        selectAllAnimals,
+        selectNoAnimals,
         
         // Internal state getter
         getCurrentBeast: () => currentBeast,

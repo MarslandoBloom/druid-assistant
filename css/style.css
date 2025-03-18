@@ -163,6 +163,115 @@ body {
     border-top: 1px dashed #ddd;
 }
 
+/* Conjure Animals Tab Styling */
+
+/* Animal Tiles */
+.animal-tile {
+    border: 1px solid var(--druid-green);
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+    position: relative;
+}
+
+.animal-tile.selected {
+    background-color: var(--druid-green-light);
+    border-color: var(--druid-green);
+    border-width: 2px;
+}
+
+.animal-hp {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.hp-controls {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.hp-controls button {
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+}
+
+.attack-section {
+    margin-top: 10px;
+}
+
+.roll-result {
+    background-color: #f1f1f1;
+    padding: 5px;
+    margin-top: 5px;
+    border-radius: 3px;
+    font-size: 0.9rem;
+}
+
+/* Battlefield */
+.battlefield {
+    height: 400px;
+    background-color: #f8f9fa;
+    background-image: linear-gradient(#dddddd 1px, transparent 1px), linear-gradient(90deg, #dddddd 1px, transparent 1px);
+    background-size: 20px 20px;
+    position: relative;
+    border: 1px solid #ddd;
+    overflow: hidden;
+}
+
+.battlefield-token {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    cursor: move;
+    user-select: none;
+    z-index: 10;
+}
+
+.battlefield-token.animal {
+    background-color: var(--druid-green);
+}
+
+.battlefield-token.enemy {
+    background-color: #dc3545;
+}
+
+.battlefield-token.selected {
+    box-shadow: 0 0 0 3px #ffc107;
+}
+
+.selection-box {
+    position: absolute;
+    border: 1px dashed #0d6efd;
+    background-color: rgba(13, 110, 253, 0.1);
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Conjure Animals tab statblock */
+#conjure-statblock .statblock-container {
+    font-size: 0.85rem;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+#conjure-statblock .statblock-action {
+    margin-bottom: 5px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .statblock-ability-scores {
@@ -176,5 +285,13 @@ body {
     
     #beastList {
         max-height: 300px;
+    }
+    
+    .battlefield {
+        height: 300px;
+    }
+    
+    #conjure-statblock .statblock-container {
+        font-size: 0.8rem;
     }
 }

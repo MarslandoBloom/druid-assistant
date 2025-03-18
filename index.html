@@ -27,6 +27,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="wildshape-tab" data-bs-toggle="tab" data-bs-target="#wildshape" type="button" role="tab" aria-controls="wildshape" aria-selected="false">Wildshape</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="conjure-animals-tab" data-bs-toggle="tab" data-bs-target="#conjure-animals" type="button" role="tab" aria-controls="conjure-animals" aria-selected="false">Conjure Animals</button>
+            </li>
         </ul>
 
         <!-- Tab Content -->
@@ -121,17 +124,20 @@
                     <!-- Statblock Display Column -->
                     <div class="col-md-8 col-lg-9 p-3">
                         <div class="card">
+                            <div class="card-header d-flex justify-content-between">
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success" id="wildshapeButton" disabled>Wildshape</button>
+                                    <button class="btn btn-success" id="conjureAnimalsButton" disabled>Conjure Animals</button>
+                                </div>
+                                <button class="btn btn-outline-success" id="favoriteButton" disabled>
+                                    <i class="bi bi-star"></i> Favorite
+                                </button>
+                            </div>
                             <div class="card-body" id="statblockDisplay">
                                 <div class="text-center p-5">
                                     <h3>Select a beast to view its statblock</h3>
                                     <p class="text-muted">The statblock will appear here</p>
                                 </div>
-                            </div>
-                            <div class="card-footer d-flex justify-content-between">
-                                <button class="btn btn-success" id="wildshapeButton" disabled>Wildshape</button>
-                                <button class="btn btn-outline-success" id="favoriteButton" disabled>
-                                    <i class="bi bi-star"></i> Favorite
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -153,6 +159,60 @@
                                     <p class="text-muted">Select a beast from the Statblock tab first</p>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conjure Animals Tab -->
+        <div class="tab-pane fade" id="conjure-animals" role="tabpanel" aria-labelledby="conjure-animals-tab">
+            <div class="row m-0">
+                <!-- Top Section: Animal Tiles (3/4) and Statblock (1/4) -->
+                <div class="col-md-9 p-3">
+                    <div class="card">
+                        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0">Conjured Animals</h3>
+                            <div>
+                                <button id="reset-conjure-btn" class="btn btn-light btn-sm me-2">Reset</button>
+                                <button id="select-all-btn" class="btn btn-light btn-sm me-2">Select All</button>
+                                <button id="select-none-btn" class="btn btn-light btn-sm me-2">Select None</button>
+                                <select id="advantage-select" class="form-select form-select-sm d-inline-block w-auto me-2">
+                                    <option value="normal">Normal Roll</option>
+                                    <option value="advantage">Advantage</option>
+                                    <option value="disadvantage">Disadvantage</option>
+                                </select>
+                                <button id="group-attack-btn" class="btn btn-primary btn-sm me-2">Group Attack</button>
+                                <button id="group-damage-btn" class="btn btn-danger btn-sm">Group Damage <span id="total-group-damage"></span></button>
+                            </div>
+                        </div>
+                        <div class="card-body" id="conjured-animals-container">
+                            <div id="conjured-animals-list" class="row"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 p-3">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h3 class="mb-0">Statblock</h3>
+                        </div>
+                        <div class="card-body" id="conjure-statblock">
+                            <div class="text-center p-2">
+                                <p class="text-muted">No beast selected for conjuring</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Section: Battlefield -->
+                <div class="col-12 p-3">
+                    <div class="card">
+                        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0">Battlefield</h3>
+                            <button id="add-enemy-btn" class="btn btn-light btn-sm">Add Enemy</button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="battlefield" class="battlefield"></div>
                         </div>
                     </div>
                 </div>

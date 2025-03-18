@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
         mainTabs: document.getElementById('mainTabs'),
         statblockTab: document.getElementById('statblock-tab'),
         wildshapeTab: document.getElementById('wildshape-tab'),
+        conjureAnimalsTab: document.getElementById('conjure-animals-tab'),
         
         // Beast list and filtering
         beastSearch: document.getElementById('beastSearch'),
@@ -26,7 +27,18 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Action buttons
         wildshapeButton: document.getElementById('wildshapeButton'),
+        conjureAnimalsButton: document.getElementById('conjureAnimalsButton'),
         favoriteButton: document.getElementById('favoriteButton'),
+
+        // Conjure Animals tab
+        advantageSelect: document.getElementById('advantage-select'),
+        groupAttackBtn: document.getElementById('group-attack-btn'),
+        groupDamageBtn: document.getElementById('group-damage-btn'),
+        totalGroupDamage: document.getElementById('total-group-damage'),
+        conjuredAnimalsList: document.getElementById('conjured-animals-list'),
+        conjureStatblock: document.getElementById('conjure-statblock'),
+        battlefield: document.getElementById('battlefield'),
+        addEnemyBtn: document.getElementById('add-enemy-btn'),
         
         // Data management
         mdFileInput: document.getElementById('mdFileInput'),
@@ -323,6 +335,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 const wildshapeTabEl = new bootstrap.Tab(elements.wildshapeTab);
                 wildshapeTabEl.show();
             }
+        });
+        
+        // Conjure Animals button
+        elements.conjureAnimalsButton.addEventListener('click', function() {
+            const currentBeast = UIManager.getCurrentBeast();
+            if (currentBeast) {
+                // Initialize the Conjure Animals tab
+                UIManager.initConjureAnimalsTab(currentBeast);
+                
+                // Switch to Conjure Animals tab
+                const conjureAnimalsTabEl = new bootstrap.Tab(elements.conjureAnimalsTab);
+                conjureAnimalsTabEl.show();
+            }
+        });
+        
+        // Reset Conjure Animals button
+        document.getElementById('reset-conjure-btn').addEventListener('click', function() {
+            // Clear the conjure animals tab
+            document.getElementById('conjured-animals-list').innerHTML = '';
+            document.getElementById('conjure-statblock').innerHTML = '<div class="text-center p-2"><p class="text-muted">No beast selected for conjuring</p></div>';
+            document.getElementById('battlefield').innerHTML = '';
+            
+            // Switch back to statblock tab
+            const statblockTabEl = new bootstrap.Tab(elements.statblockTab);
+            statblockTabEl.show();
+        });
+        
+        // Add enemy button
+        elements.addEnemyBtn.addEventListener('click', function() {
+            UIManager.addEnemyToken();
+        });
+        
+        // Group attack button
+        elements.groupAttackBtn.addEventListener('click', function() {
+            UIManager.handleGroupAttackRoll();
+        });
+        
+        // Group damage button
+        elements.groupDamageBtn.addEventListener('click', function() {
+            UIManager.handleGroupDamageRoll();
+        });
+        
+        // Select All button
+        document.getElementById('select-all-btn').addEventListener('click', function() {
+            UIManager.selectAllAnimals();
+        });
+        
+        // Select None button
+        document.getElementById('select-none-btn').addEventListener('click', function() {
+            UIManager.selectNoAnimals();
         });
         
         // Favorite button
