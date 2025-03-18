@@ -387,6 +387,11 @@ document.addEventListener('DOMContentLoaded', function() {
             UIManager.selectNoAnimals();
         });
         
+        // Reset Rolls button
+        document.getElementById('reset-rolls-btn').addEventListener('click', function() {
+            UIManager.resetRolls();
+        });
+        
         // Favorite button
         elements.favoriteButton.addEventListener('click', function() {
             const currentBeast = UIManager.getCurrentBeast();

@@ -20,6 +20,25 @@
             const animalId = tile.dataset.animalId;
             deselectAnimalTile(tile, animalId);
         });
+    }
+    
+    /**
+     * Reset all attack and damage rolls
+     */
+    function resetRolls() {
+        // Clear all roll result displays
+        document.querySelectorAll('.roll-result').forEach(element => {
+            element.innerHTML = '';
+        });
+        
+        // Clear the total group damage
+        const totalGroupDamage = document.getElementById('total-group-damage');
+        if (totalGroupDamage) {
+            totalGroupDamage.textContent = '';
+        }
+        
+        // Clear critical hits tracking
+        criticalHits = {};
     }/**
  * ui.js - UI management module for the Druid's Assistant
  * Handles rendering beasts, statblocks, and UI updates
@@ -1804,22 +1823,19 @@ const UIManager = (function() {
         // Get the global advantage setting
         const advantageSelect = document.getElementById('advantage-select');
         const advantage = advantageSelect ? advantageSelect.value : 'normal';
-        
-        // Get the attack type from the first selected animal
-        const firstAnimalTile = document.querySelector(`.animal-tile[data-animal-id="${selectedAnimals[0]}"]`);
-        if (!firstAnimalTile) return;
-        
-        const attackType = firstAnimalTile.querySelector('.attack-select').value;
-        
-        // Roll for each selected animal
+                
+        // Roll for each selected animal using their individually selected attack
         selectedAnimals.forEach(animalId => {
-            // Override the individual animal's advantage setting with the global one
+            // Get the attack type from each animal's own dropdown
             const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
-            if (tile) {
-                const animalAdvantageSelect = tile.querySelector('.advantage-select');
-                if (animalAdvantageSelect) {
-                    animalAdvantageSelect.value = advantage;
-                }
+            if (!tile) return;
+            
+            const attackType = tile.querySelector('.attack-select').value;
+            
+            // Override the individual animal's advantage setting with the global one
+            const animalAdvantageSelect = tile.querySelector('.advantage-select');
+            if (animalAdvantageSelect) {
+                animalAdvantageSelect.value = advantage;
             }
             
             handleAttackRoll(animalId, attackType, currentSummonedBeast);
@@ -1834,17 +1850,17 @@ const UIManager = (function() {
             alert('Please select at least one animal first');
             return;
         }
-        
-        // Get the attack type from the first selected animal
-        const firstAnimalTile = document.querySelector(`.animal-tile[data-animal-id="${selectedAnimals[0]}"]`);
-        if (!firstAnimalTile) return;
-        
-        const attackType = firstAnimalTile.querySelector('.attack-select').value;
-        
+                
         // Roll for each selected animal and calculate total damage
         let totalDamage = 0;
         
         selectedAnimals.forEach(animalId => {
+            // Get the attack type from each animal's own dropdown
+            const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
+            if (!tile) return;
+            
+            const attackType = tile.querySelector('.attack-select').value;
+            
             // Get attacks to roll
             const attacks = getAttacksToRoll(attackType, currentSummonedBeast);
             
@@ -2011,6 +2027,7 @@ const UIManager = (function() {
         handleGroupDamageRoll,
         selectAllAnimals,
         selectNoAnimals,
+        resetRolls,
         
         // Internal state getter
         getCurrentBeast: () => currentBeast,
