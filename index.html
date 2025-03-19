@@ -30,6 +30,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="conjure-animals-tab" data-bs-toggle="tab" data-bs-target="#conjure-animals" type="button" role="tab" aria-controls="conjure-animals" aria-selected="false">Conjure Animals</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="dice-roller-tab" data-bs-toggle="tab" data-bs-target="#dice-roller" type="button" role="tab" aria-controls="dice-roller" aria-selected="false">Dice Roller</button>
+            </li>
         </ul>
 
         <!-- Tab Content -->
@@ -165,6 +168,195 @@
             </div>
         </div>
 
+        <!-- Dice Roller Tab -->
+        <div class="tab-pane fade" id="dice-roller" role="tabpanel" aria-labelledby="dice-roller-tab">
+            <div class="container-fluid p-3">
+                <!-- Top Options Bar -->
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">Dice Options</h4>
+                    </div>
+                    <div class="card-body d-flex flex-wrap align-items-center gap-3">
+                        <!-- Roll Type Selection -->
+                        <div class="dice-option">
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="rollType" id="normal-roll" value="normal" checked>
+                                <label class="btn btn-outline-success" for="normal-roll">Normal</label>
+                                
+                                <input type="radio" class="btn-check" name="rollType" id="advantage-roll" value="advantage">
+                                <label class="btn btn-outline-success" for="advantage-roll">Advantage</label>
+                                
+                                <input type="radio" class="btn-check" name="rollType" id="disadvantage-roll" value="disadvantage">
+                                <label class="btn btn-outline-success" for="disadvantage-roll">Disadvantage</label>
+                            </div>
+                        </div>
+                        
+                        <!-- Modifier Input -->
+                        <div class="dice-option">
+                            <label for="dice-modifier" class="form-label mb-0 me-2">Modifier:</label>
+                            <input type="number" class="form-control form-control-sm" id="dice-modifier" value="0" style="width: 80px;">
+                        </div>
+                        
+                        <!-- Sum Toggle -->
+                        <div class="dice-option">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="sum-dice">
+                                <label class="form-check-label" for="sum-dice">Sum All Dice</label>
+                            </div>
+                        </div>
+                        
+                        <!-- Reset Button -->
+                        <div class="dice-option ms-auto">
+                            <button class="btn btn-outline-danger" id="reset-dice">Reset All</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dice Tiles Container -->
+                <div class="dice-tiles-container">
+                    <div class="row g-3">
+                        <!-- d20 Tile -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="dice-tile">
+                                <div class="dice-title">
+                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                        <div class="dice-icon"><!-- d20 icon or text --></div>
+                                        <div class="dice-label">d20</div>
+                                    </div>
+                                </div>
+                                <div class="dice-buttons">
+                                    <button class="dice-btn" data-dice="d20" data-count="1">1d20</button>
+                                    <button class="dice-btn" data-dice="d20" data-count="2">2d20</button>
+                                    <button class="dice-btn" data-dice="d20" data-count="3">3d20</button>
+                                    <button class="dice-btn" data-dice="d20" data-count="4">4d20</button>
+                                    <button class="dice-btn" data-dice="d20" data-count="5">5d20</button>
+                                    <button class="dice-btn" data-dice="d20" data-count="6">6d20</button>
+                                    <button class="dice-btn" data-dice="d20" data-count="7">7d20</button>
+                                    <button class="dice-btn" data-dice="d20" data-count="8">8d20</button>
+                                </div>
+                                <div class="dice-results" id="d20-results"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- d12 Tile -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="dice-tile">
+                                <div class="dice-title">
+                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                        <div class="dice-icon"><!-- d12 icon or text --></div>
+                                        <div class="dice-label">d12</div>
+                                    </div>
+                                </div>
+                                <div class="dice-buttons">
+                                    <button class="dice-btn" data-dice="d12" data-count="1">1d12</button>
+                                    <button class="dice-btn" data-dice="d12" data-count="2">2d12</button>
+                                    <button class="dice-btn" data-dice="d12" data-count="3">3d12</button>
+                                    <button class="dice-btn" data-dice="d12" data-count="4">4d12</button>
+                                    <button class="dice-btn" data-dice="d12" data-count="5">5d12</button>
+                                    <button class="dice-btn" data-dice="d12" data-count="6">6d12</button>
+                                    <button class="dice-btn" data-dice="d12" data-count="7">7d12</button>
+                                    <button class="dice-btn" data-dice="d12" data-count="8">8d12</button>
+                                </div>
+                                <div class="dice-results" id="d12-results"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- d10 Tile -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="dice-tile">
+                                <div class="dice-title">
+                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                        <div class="dice-icon"><!-- d10 icon or text --></div>
+                                        <div class="dice-label">d10</div>
+                                    </div>
+                                </div>
+                                <div class="dice-buttons">
+                                    <button class="dice-btn" data-dice="d10" data-count="1">1d10</button>
+                                    <button class="dice-btn" data-dice="d10" data-count="2">2d10</button>
+                                    <button class="dice-btn" data-dice="d10" data-count="3">3d10</button>
+                                    <button class="dice-btn" data-dice="d10" data-count="4">4d10</button>
+                                    <button class="dice-btn" data-dice="d10" data-count="5">5d10</button>
+                                    <button class="dice-btn" data-dice="d10" data-count="6">6d10</button>
+                                    <button class="dice-btn" data-dice="d10" data-count="7">7d10</button>
+                                    <button class="dice-btn" data-dice="d10" data-count="8">8d10</button>
+                                </div>
+                                <div class="dice-results" id="d10-results"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- d8 Tile -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="dice-tile">
+                                <div class="dice-title">
+                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                        <div class="dice-icon"><!-- d8 icon or text --></div>
+                                        <div class="dice-label">d8</div>
+                                    </div>
+                                </div>
+                                <div class="dice-buttons">
+                                    <button class="dice-btn" data-dice="d8" data-count="1">1d8</button>
+                                    <button class="dice-btn" data-dice="d8" data-count="2">2d8</button>
+                                    <button class="dice-btn" data-dice="d8" data-count="3">3d8</button>
+                                    <button class="dice-btn" data-dice="d8" data-count="4">4d8</button>
+                                    <button class="dice-btn" data-dice="d8" data-count="5">5d8</button>
+                                    <button class="dice-btn" data-dice="d8" data-count="6">6d8</button>
+                                    <button class="dice-btn" data-dice="d8" data-count="7">7d8</button>
+                                    <button class="dice-btn" data-dice="d8" data-count="8">8d8</button>
+                                </div>
+                                <div class="dice-results" id="d8-results"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- d6 Tile -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="dice-tile">
+                                <div class="dice-title">
+                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                        <div class="dice-icon"><!-- d6 icon or text --></div>
+                                        <div class="dice-label">d6</div>
+                                    </div>
+                                </div>
+                                <div class="dice-buttons">
+                                    <button class="dice-btn" data-dice="d6" data-count="1">1d6</button>
+                                    <button class="dice-btn" data-dice="d6" data-count="2">2d6</button>
+                                    <button class="dice-btn" data-dice="d6" data-count="3">3d6</button>
+                                    <button class="dice-btn" data-dice="d6" data-count="4">4d6</button>
+                                    <button class="dice-btn" data-dice="d6" data-count="5">5d6</button>
+                                    <button class="dice-btn" data-dice="d6" data-count="6">6d6</button>
+                                    <button class="dice-btn" data-dice="d6" data-count="7">7d6</button>
+                                    <button class="dice-btn" data-dice="d6" data-count="8">8d6</button>
+                                </div>
+                                <div class="dice-results" id="d6-results"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- d4 Tile -->
+                        <div class="col-md-6 col-lg-4">
+                            <div class="dice-tile">
+                                <div class="dice-title">
+                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                        <div class="dice-icon"><!-- d4 icon or text --></div>
+                                        <div class="dice-label">d4</div>
+                                    </div>
+                                </div>
+                                <div class="dice-buttons">
+                                    <button class="dice-btn" data-dice="d4" data-count="1">1d4</button>
+                                    <button class="dice-btn" data-dice="d4" data-count="2">2d4</button>
+                                    <button class="dice-btn" data-dice="d4" data-count="3">3d4</button>
+                                    <button class="dice-btn" data-dice="d4" data-count="4">4d4</button>
+                                    <button class="dice-btn" data-dice="d4" data-count="5">5d4</button>
+                                    <button class="dice-btn" data-dice="d4" data-count="6">6d4</button>
+                                    <button class="dice-btn" data-dice="d4" data-count="7">7d4</button>
+                                    <button class="dice-btn" data-dice="d4" data-count="8">8d4</button>
+                                </div>
+                                <div class="dice-results" id="d4-results"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Conjure Animals Tab -->
         <div class="tab-pane fade" id="conjure-animals" role="tabpanel" aria-labelledby="conjure-animals-tab">
             <div class="row m-0">
@@ -271,5 +463,6 @@
     <script src="js/data.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/dice-roller.js"></script>
 </body>
 </html>
