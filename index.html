@@ -40,8 +40,8 @@
             <!-- Statblock Tab -->
             <div class="tab-pane fade show active" id="statblock" role="tabpanel" aria-labelledby="statblock-tab">
                 <div class="row m-0">
-                    <!-- Beast List Column -->
-                    <div class="col-md-4 col-lg-3 p-3 bg-light">
+                    <!-- Beast List Column - Made 30% wider -->
+                    <div class="col-md-6 col-lg-5 p-3 bg-light">
                         <div class="input-group mb-3">
                             <input type="text" class="form-control" id="beastSearch" placeholder="Search beasts...">
                             <button class="btn btn-outline-success" type="button" id="clearSearch">Clear</button>
@@ -49,12 +49,13 @@
                         
                         <!-- CR Range Filter -->
                         <div class="card mb-3">
-                            <div class="card-header bg-success text-white collapsible collapsed" data-filter="cr">
+                            <div class="card-header bg-success text-white collapsible collapsed d-flex justify-content-between align-items-center" data-filter="cr">
                                 <h6 class="mb-0">CR Filter</h6>
+                                <i class="bi bi-chevron-down"></i>
                             </div>
                             <div class="card-body filter-content collapsed" id="cr-filter-content">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <div class="form-check">
+                                    <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" id="enableCRRange">
                                         <label class="form-check-label" for="enableCRRange">
                                             Filter by CR Range
@@ -83,29 +84,34 @@
                         
                         <!-- Size Filter -->
                         <div class="card mb-3">
-                            <div class="card-header bg-success text-white collapsible collapsed" data-filter="size">
+                            <div class="card-header bg-success text-white collapsible collapsed d-flex justify-content-between align-items-center" data-filter="size">
                                 <h6 class="mb-0">Size Filter</h6>
+                                <i class="bi bi-chevron-down"></i>
                             </div>
                             <div class="card-body filter-content collapsed" id="size-filter-content">
                                 <div class="d-flex gap-2 flex-wrap">
-                                    <button class="btn btn-sm btn-outline-success size-filter" data-size="all">All Sizes</button>
-                                    <button class="btn btn-sm btn-outline-success size-filter" data-size="Tiny">Tiny</button>
-                                    <button class="btn btn-sm btn-outline-success size-filter" data-size="Small">Small</button>
-                                    <button class="btn btn-sm btn-outline-success size-filter" data-size="Medium">Medium</button>
-                                    <button class="btn btn-sm btn-outline-success size-filter" data-size="Large">Large</button>
-                                    <button class="btn btn-sm btn-outline-success size-filter" data-size="Huge">Huge</button>
-                                    <button class="btn btn-sm btn-outline-success size-filter" data-size="Gargantuan">Gargantuan</button>
+                                    <button class="btn btn-sm btn-outline-success size-filter btn-size-compact" data-size="all">All</button>
+                                    <button class="btn btn-sm btn-outline-success size-filter btn-size-compact" data-size="Tiny">Tiny</button>
+                                    <button class="btn btn-sm btn-outline-success size-filter btn-size-compact" data-size="Small">Small</button>
+                                    <button class="btn btn-sm btn-outline-success size-filter btn-size-compact" data-size="Medium">Med</button>
+                                    <button class="btn btn-sm btn-outline-success size-filter btn-size-compact" data-size="Large">Large</button>
+                                    <button class="btn btn-sm btn-outline-success size-filter btn-size-compact" data-size="Huge">Huge</button>
+                                    <button class="btn btn-sm btn-outline-success size-filter btn-size-compact" data-size="Gargantuan">Garg</button>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Sort and Favorite Controls -->
                         <div class="d-flex justify-content-between mb-3">
-                            <button class="btn btn-outline-success" id="showFavorites">Favorites</button>
-                            <button class="btn btn-outline-success" id="backToListBtn" style="display: none;">Back to List</button>
-                            <button class="btn btn-outline-success" id="resetFilters">Reset Filters</button>
-                            <div class="dropdown">
-                                <button class="btn btn-outline-success dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="d-flex flex-nowrap gap-2">
+                                <button class="btn btn-sm btn-outline-success" id="showWildshapeFavorites">Wildshape Favorites</button>
+                                <button class="btn btn-sm btn-outline-success" id="showConjureFavorites">Conjure Favorites</button>
+                                <button class="btn btn-sm btn-outline-success" id="backToListBtn" style="display: none;">Back to List</button>
+                            </div>
+                            <div class="d-flex flex-nowrap gap-2">
+                                <button class="btn btn-sm btn-outline-success" id="resetFilters">Reset Filters</button>
+                                <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     Sort: Name (A-Z)
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="sortDropdown">
@@ -117,6 +123,7 @@
                                     <li><a class="dropdown-item sort-option" data-sort="size" data-direction="desc" href="#">Size (Large-Small)</a></li>
                                 </ul>
                             </div>
+                            </div>
                         </div>
                         
                         <div class="list-group" id="beastList">
@@ -125,16 +132,23 @@
                         </div>
                     </div>
                     <!-- Statblock Display Column -->
-                    <div class="col-md-8 col-lg-9 p-3">
+                    <div class="col-md-6 col-lg-7 p-3">
                         <div class="card">
-                            <div class="card-header d-flex justify-content-between">
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-success" id="wildshapeButton" disabled>Wildshape</button>
-                                    <button class="btn btn-success" id="conjureAnimalsButton" disabled>Conjure Animals</button>
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-success" id="wildshapeButton" disabled>Wildshape</button>
+                                        <button class="btn btn-sm btn-success" id="conjureAnimalsButton" disabled>Conjure Animals</button>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-success" id="wildshapeFavoriteButton" disabled>
+                                            <i class="bi bi-star"></i> Wildshape Fav
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success" id="conjureFavoriteButton" disabled>
+                                            <i class="bi bi-star"></i> Conjure Fav
+                                        </button>
+                                    </div>
                                 </div>
-                                <button class="btn btn-outline-success" id="favoriteButton" disabled>
-                                    <i class="bi bi-star"></i> Favorite
-                                </button>
                             </div>
                             <div class="card-body" id="statblockDisplay">
                                 <div class="text-center p-5">
@@ -166,10 +180,8 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Dice Roller Tab -->
-        <div class="tab-pane fade" id="dice-roller" role="tabpanel" aria-labelledby="dice-roller-tab">
+            <!-- Dice Roller Tab -->
+            <div class="tab-pane fade" id="dice-roller" role="tabpanel" aria-labelledby="dice-roller-tab">
             <div class="container-fluid p-3">
                 <!-- Top Options Bar -->
                 <div class="card mb-3">
@@ -355,10 +367,10 @@
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
 
-        <!-- Conjure Animals Tab -->
-        <div class="tab-pane fade" id="conjure-animals" role="tabpanel" aria-labelledby="conjure-animals-tab">
+            <!-- Conjure Animals Tab -->
+            <div class="tab-pane fade p-0" id="conjure-animals" role="tabpanel" aria-labelledby="conjure-animals-tab">
             <div class="row m-0">
                 <!-- Top Section: Animal Tiles (3/4) and Statblock (1/4) -->
                 <div class="col-md-9 p-3">

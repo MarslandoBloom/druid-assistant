@@ -21,14 +21,16 @@ document.addEventListener('DOMContentLoaded', function() {
         maxCR: document.getElementById('maxCR'),
         applyCRFilter: document.getElementById('applyCRFilter'),
         sizeFilters: document.querySelectorAll('.size-filter'),
-        showFavorites: document.getElementById('showFavorites'),
+        showWildshapeFavorites: document.getElementById('showWildshapeFavorites'),
+        showConjureFavorites: document.getElementById('showConjureFavorites'),
         backToListBtn: document.getElementById('backToListBtn'),
         resetFilters: document.getElementById('resetFilters'),
         
         // Action buttons
         wildshapeButton: document.getElementById('wildshapeButton'),
         conjureAnimalsButton: document.getElementById('conjureAnimalsButton'),
-        favoriteButton: document.getElementById('favoriteButton'),
+        wildshapeFavoriteButton: document.getElementById('wildshapeFavoriteButton'),
+        conjureFavoriteButton: document.getElementById('conjureFavoriteButton'),
 
         // Conjure Animals tab
         advantageSelect: document.getElementById('advantage-select'),
@@ -257,36 +259,63 @@ document.addEventListener('DOMContentLoaded', function() {
                 UIManager.setSortDirection(sortDirection);
                 UIManager.applyFilters();
                 
-                // Update sort dropdown text
-                const sortText = this.textContent;
+                // Update sort dropdown text - make compact for UI
+                let sortText = this.textContent;
+                // Make size text shorter
+                if (sortText.includes('(Small-Large)')) {
+                    sortText = sortText.replace('(Small-Large)', '(S→L)');
+                } else if (sortText.includes('(Large-Small)')) {
+                    sortText = sortText.replace('(Large-Small)', '(L→S)');
+                }
                 document.getElementById('sortDropdown').textContent = `Sort: ${sortText}`;
             });
         });
         
-        // Show favorites
-        elements.showFavorites.addEventListener('click', function() {
-            UIManager.showOnlyFavorites();
+        // Show wildshape favorites
+        elements.showWildshapeFavorites.addEventListener('click', function() {
+            UIManager.showOnlyWildshapeFavorites();
             
             // Update button appearances
             this.classList.remove('btn-outline-success');
             this.classList.add('btn-success');
+            elements.showConjureFavorites.classList.remove('btn-success');
+            elements.showConjureFavorites.classList.add('btn-outline-success');
             
             // Show back button
             document.getElementById('backToListBtn').style.display = 'block';
             this.style.display = 'none';
+            elements.showConjureFavorites.style.display = 'none';
+        });
+        
+        // Show conjure favorites
+        elements.showConjureFavorites.addEventListener('click', function() {
+            UIManager.showOnlyConjureFavorites();
+            
+            // Update button appearances
+            this.classList.remove('btn-outline-success');
+            this.classList.add('btn-success');
+            elements.showWildshapeFavorites.classList.remove('btn-success');
+            elements.showWildshapeFavorites.classList.add('btn-outline-success');
+            
+            // Show back button
+            document.getElementById('backToListBtn').style.display = 'block';
+            this.style.display = 'none';
+            elements.showWildshapeFavorites.style.display = 'none';
         });
         
         // Back to list button
         document.getElementById('backToListBtn').addEventListener('click', function() {
-            // Reset filters and show all beasts
-            UIManager.resetFilters();
+            // Show all beasts but retain current filters
             UIManager.applyFilters();
             
             // Update button appearances
             this.style.display = 'none';
-            elements.showFavorites.style.display = 'block';
-            elements.showFavorites.classList.remove('btn-success');
-            elements.showFavorites.classList.add('btn-outline-success');
+            elements.showWildshapeFavorites.style.display = 'block';
+            elements.showConjureFavorites.style.display = 'block';
+            elements.showWildshapeFavorites.classList.remove('btn-success');
+            elements.showWildshapeFavorites.classList.add('btn-outline-success');
+            elements.showConjureFavorites.classList.remove('btn-success');
+            elements.showConjureFavorites.classList.add('btn-outline-success');
         });
         
         // Reset filters
@@ -318,9 +347,12 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('sortDropdown').textContent = 'Sort: Name (A-Z)';
             
             // Reset favorites and back button
-            elements.showFavorites.classList.remove('btn-success');
-            elements.showFavorites.classList.add('btn-outline-success');
-            elements.showFavorites.style.display = 'block';
+            elements.showWildshapeFavorites.classList.remove('btn-success');
+            elements.showWildshapeFavorites.classList.add('btn-outline-success');
+            elements.showWildshapeFavorites.style.display = 'block';
+            elements.showConjureFavorites.classList.remove('btn-success');
+            elements.showConjureFavorites.classList.add('btn-outline-success');
+            elements.showConjureFavorites.style.display = 'block';
             elements.backToListBtn.style.display = 'none';
         });
         
@@ -392,11 +424,19 @@ document.addEventListener('DOMContentLoaded', function() {
             UIManager.resetRolls();
         });
         
-        // Favorite button
-        elements.favoriteButton.addEventListener('click', function() {
+        // Wildshape Favorite button
+        elements.wildshapeFavoriteButton.addEventListener('click', function() {
             const currentBeast = UIManager.getCurrentBeast();
             if (currentBeast) {
-                UIManager.toggleFavorite(currentBeast.id);
+                UIManager.toggleWildshapeFavorite(currentBeast.id);
+            }
+        });
+        
+        // Conjure Favorite button
+        elements.conjureFavoriteButton.addEventListener('click', function() {
+            const currentBeast = UIManager.getCurrentBeast();
+            if (currentBeast) {
+                UIManager.toggleConjureFavorite(currentBeast.id);
             }
         });
         
@@ -473,7 +513,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         // Disable buttons
                         elements.wildshapeButton.disabled = true;
-                        elements.favoriteButton.disabled = true;
+                        elements.conjureAnimalsButton.disabled = true;
+                        elements.wildshapeFavoriteButton.disabled = true;
+                        elements.conjureFavoriteButton.disabled = true;
                         
                         // Close the modal
                         const modal = bootstrap.Modal.getInstance(document.getElementById('dataModal'));

@@ -31,24 +31,41 @@ body {
     overflow-y: auto;
 }
 
+/* Favorites column styling */
+.favorites-columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.favorites-column {
+    flex: 1;
+    min-width: 150px;
+}
+
 /* Collapsible filter styling */
 .card-header.collapsible {
     cursor: pointer;
 }
 
-.card-header.collapsible:after {
-    content: "▼";
-    float: right;
-    font-size: 0.8rem;
+.card-header.collapsible .bi-chevron-down {
     transition: transform 0.3s;
 }
 
-.card-header.collapsible.collapsed:after {
+.card-header.collapsible.collapsed .bi-chevron-down {
     transform: rotate(-90deg);
 }
 
 .filter-content.collapsed {
     display: none;
+}
+
+/* Size filter button styling */
+.btn-size-compact {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    min-width: 40px;
+    text-align: center;
 }
 
 .list-group-item.active {
@@ -58,6 +75,10 @@ body {
 
 .list-group-item-favorite {
     background-color: var(--druid-green-light);
+}
+
+#wildshapeFavoriteButton, #conjureFavoriteButton {
+    margin-bottom: 5px;
 }
 
 /* Statblock styling (D&D 5e style) */
@@ -153,17 +174,19 @@ body {
     font-style: italic;
 }
 
-/* Source information styling */
-.statblock-source {
-    font-size: 0.85em;
-    color: #666;
-    font-style: italic;
-    margin-top: 10px;
-    padding: 5px 0;
-    border-top: 1px dashed #ddd;
-}
+/* Source information is removed */
 
 /* Conjure Animals Tab Styling */
+#conjure-animals {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Compact buttons for improved layout */
+.btn-sm {
+    font-size: 0.775rem;
+    padding: 0.25rem 0.5rem;
+}
 
 /* Header Controls */
 #advantage-select.form-select-sm {

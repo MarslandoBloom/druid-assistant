@@ -7,9 +7,11 @@
 const DataManager = (function() {
     // Database configuration
     const DB_NAME = 'DruidsAssistantDB';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     const BEAST_STORE = 'beasts';
     const FAVORITES_STORE = 'favorites';
+    const WILDSHAPE_FAVORITES_STORE = 'wildshapeFavorites';
+    const CONJURE_FAVORITES_STORE = 'conjureFavorites';
     
     // IndexedDB instance
     let db = null;
@@ -35,6 +37,7 @@ const DataManager = (function() {
             
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+                const oldVersion = event.oldVersion;
                 
                 // Create object stores if they don't exist
                 if (!db.objectStoreNames.contains(BEAST_STORE)) {
@@ -46,6 +49,23 @@ const DataManager = (function() {
                 
                 if (!db.objectStoreNames.contains(FAVORITES_STORE)) {
                     db.createObjectStore(FAVORITES_STORE, { keyPath: 'id' });
+                }
+                
+                // New stores for separate favorites (added in version 2)
+                if (oldVersion < 2) {
+                    if (!db.objectStoreNames.contains(WILDSHAPE_FAVORITES_STORE)) {
+                        db.createObjectStore(WILDSHAPE_FAVORITES_STORE, { keyPath: 'id' });
+                    }
+                    
+                    if (!db.objectStoreNames.contains(CONJURE_FAVORITES_STORE)) {
+                        db.createObjectStore(CONJURE_FAVORITES_STORE, { keyPath: 'id' });
+                    }
+                    
+                    // Migrate existing favorites if upgrading from v1 to v2
+                    if (oldVersion === 1 && db.objectStoreNames.contains(FAVORITES_STORE)) {
+                        // We'll handle the migration after the upgrade completes
+                        console.log('Will migrate favorites to separate stores');
+                    }
                 }
                 
                 console.log('Database setup complete');
@@ -612,7 +632,73 @@ const DataManager = (function() {
     }
     
     /**
-     * Adds a beast to favorites
+     * Adds a beast to wildshape favorites
+     * @param {string} beastId - ID of beast to favorite
+     * @returns {Promise} Resolves when complete
+     */
+    function addWildshapeFavorite(beastId) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([WILDSHAPE_FAVORITES_STORE], 'readwrite');
+            const store = transaction.objectStore(WILDSHAPE_FAVORITES_STORE);
+            
+            const favorite = {
+                id: beastId,
+                dateAdded: new Date()
+            };
+            
+            const request = store.put(favorite);
+            
+            request.onsuccess = () => {
+                resolve();
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error adding wildshape favorite');
+            };
+        });
+    }
+    
+    /**
+     * Adds a beast to conjure favorites
+     * @param {string} beastId - ID of beast to favorite
+     * @returns {Promise} Resolves when complete
+     */
+    function addConjureFavorite(beastId) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([CONJURE_FAVORITES_STORE], 'readwrite');
+            const store = transaction.objectStore(CONJURE_FAVORITES_STORE);
+            
+            const favorite = {
+                id: beastId,
+                dateAdded: new Date()
+            };
+            
+            const request = store.put(favorite);
+            
+            request.onsuccess = () => {
+                resolve();
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error adding conjure favorite');
+            };
+        });
+    }
+    
+    /**
+     * Adds a beast to general favorites (legacy - for backwards compatibility)
      * @param {string} beastId - ID of beast to favorite
      * @returns {Promise} Resolves when complete
      */
@@ -645,7 +731,63 @@ const DataManager = (function() {
     }
     
     /**
-     * Removes a beast from favorites
+     * Removes a beast from wildshape favorites
+     * @param {string} beastId - ID of beast to unfavorite
+     * @returns {Promise} Resolves when complete
+     */
+    function removeWildshapeFavorite(beastId) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([WILDSHAPE_FAVORITES_STORE], 'readwrite');
+            const store = transaction.objectStore(WILDSHAPE_FAVORITES_STORE);
+            
+            const request = store.delete(beastId);
+            
+            request.onsuccess = () => {
+                resolve();
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error removing wildshape favorite');
+            };
+        });
+    }
+    
+    /**
+     * Removes a beast from conjure favorites
+     * @param {string} beastId - ID of beast to unfavorite
+     * @returns {Promise} Resolves when complete
+     */
+    function removeConjureFavorite(beastId) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([CONJURE_FAVORITES_STORE], 'readwrite');
+            const store = transaction.objectStore(CONJURE_FAVORITES_STORE);
+            
+            const request = store.delete(beastId);
+            
+            request.onsuccess = () => {
+                resolve();
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error removing conjure favorite');
+            };
+        });
+    }
+    
+    /**
+     * Removes a beast from favorites (legacy - for backwards compatibility)
      * @param {string} beastId - ID of beast to unfavorite
      * @returns {Promise} Resolves when complete
      */
@@ -673,7 +815,63 @@ const DataManager = (function() {
     }
     
     /**
-     * Checks if a beast is favorited
+     * Checks if a beast is in wildshape favorites
+     * @param {string} beastId - Beast ID to check
+     * @returns {Promise} Resolves with boolean
+     */
+    function isWildshapeFavorite(beastId) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([WILDSHAPE_FAVORITES_STORE], 'readonly');
+            const store = transaction.objectStore(WILDSHAPE_FAVORITES_STORE);
+            
+            const request = store.get(beastId);
+            
+            request.onsuccess = () => {
+                resolve(!!request.result);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error checking wildshape favorite status');
+            };
+        });
+    }
+    
+    /**
+     * Checks if a beast is in conjure favorites
+     * @param {string} beastId - Beast ID to check
+     * @returns {Promise} Resolves with boolean
+     */
+    function isConjureFavorite(beastId) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([CONJURE_FAVORITES_STORE], 'readonly');
+            const store = transaction.objectStore(CONJURE_FAVORITES_STORE);
+            
+            const request = store.get(beastId);
+            
+            request.onsuccess = () => {
+                resolve(!!request.result);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error checking conjure favorite status');
+            };
+        });
+    }
+    
+    /**
+     * Checks if a beast is favorited (legacy - for backwards compatibility)
      * @param {string} beastId - Beast ID to check
      * @returns {Promise} Resolves with boolean
      */
@@ -684,35 +882,50 @@ const DataManager = (function() {
                 return;
             }
             
-            const transaction = db.transaction([FAVORITES_STORE], 'readonly');
-            const store = transaction.objectStore(FAVORITES_STORE);
-            
-            const request = store.get(beastId);
-            
-            request.onsuccess = () => {
-                resolve(!!request.result);
-            };
-            
-            request.onerror = (event) => {
-                console.error('Request error:', event.target.error);
+            // Check both specific favorite stores and the legacy store
+            Promise.all([
+                isWildshapeFavorite(beastId).catch(() => false),
+                isConjureFavorite(beastId).catch(() => false), 
+                new Promise((res, rej) => {
+                    const transaction = db.transaction([FAVORITES_STORE], 'readonly');
+                    const store = transaction.objectStore(FAVORITES_STORE);
+                    
+                    const request = store.get(beastId);
+                    
+                    request.onsuccess = () => {
+                        res(!!request.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        console.error('Request error:', event.target.error);
+                        rej(false);
+                    };
+                })
+            ])
+            .then(results => {
+                // If it's in any of the stores, consider it a favorite
+                resolve(results.some(result => result === true));
+            })
+            .catch(error => {
+                console.error('Error checking combined favorite status:', error);
                 reject('Error checking favorite status');
-            };
+            });
         });
     }
     
     /**
-     * Gets all favorite beasts
+     * Gets all wildshape favorite beasts
      * @returns {Promise} Resolves with array of favorite beast objects
      */
-    function getAllFavorites() {
+    function getAllWildshapeFavorites() {
         return new Promise((resolve, reject) => {
             if (!db) {
                 reject('Database not initialized');
                 return;
             }
             
-            const transaction = db.transaction([FAVORITES_STORE, BEAST_STORE], 'readonly');
-            const favStore = transaction.objectStore(FAVORITES_STORE);
+            const transaction = db.transaction([WILDSHAPE_FAVORITES_STORE, BEAST_STORE], 'readonly');
+            const favStore = transaction.objectStore(WILDSHAPE_FAVORITES_STORE);
             const beastStore = transaction.objectStore(BEAST_STORE);
             
             const favRequest = favStore.getAll();
@@ -723,12 +936,13 @@ const DataManager = (function() {
                 let processed = 0;
                 
                 if (favorites.length === 0) {
-                    ensureDefaultFavorites()
+                    // For wildshape, we'll use wolf and brown bear as defaults
+                    ensureDefaultWildshapeFavorites()
                         .then(defaultFavorites => {
                             resolve(defaultFavorites);
                         })
                         .catch(error => {
-                            console.error('Error ensuring default favorites:', error);
+                            console.error('Error ensuring default wildshape favorites:', error);
                             resolve([]);
                         });
                     return;
@@ -761,9 +975,173 @@ const DataManager = (function() {
             };
             
             favRequest.onerror = (event) => {
-                console.error('Favorites request error:', event.target.error);
-                reject('Error getting favorites');
+                console.error('Wildshape favorites request error:', event.target.error);
+                reject('Error getting wildshape favorites');
             };
+        });
+    }
+    
+    /**
+     * Gets all conjure favorite beasts
+     * @returns {Promise} Resolves with array of favorite beast objects
+     */
+    function getAllConjureFavorites() {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([CONJURE_FAVORITES_STORE, BEAST_STORE], 'readonly');
+            const favStore = transaction.objectStore(CONJURE_FAVORITES_STORE);
+            const beastStore = transaction.objectStore(BEAST_STORE);
+            
+            const favRequest = favStore.getAll();
+            
+            favRequest.onsuccess = () => {
+                const favorites = favRequest.result;
+                const favoriteBeasts = [];
+                let processed = 0;
+                
+                if (favorites.length === 0) {
+                    // For conjure, we'll use wolf and velociraptor as defaults
+                    ensureDefaultConjureFavorites()
+                        .then(defaultFavorites => {
+                            resolve(defaultFavorites);
+                        })
+                        .catch(error => {
+                            console.error('Error ensuring default conjure favorites:', error);
+                            resolve([]);
+                        });
+                    return;
+                }
+                
+                favorites.forEach(fav => {
+                    const beastRequest = beastStore.get(fav.id);
+                    
+                    beastRequest.onsuccess = () => {
+                        if (beastRequest.result) {
+                            favoriteBeasts.push(beastRequest.result);
+                        } else {
+                            console.warn(`Favorite beast with ID ${fav.id} not found in beast store`);
+                        }
+                        
+                        processed++;
+                        if (processed === favorites.length) {
+                            resolve(favoriteBeasts);
+                        }
+                    };
+                    
+                    beastRequest.onerror = (event) => {
+                        console.error('Beast request error:', event.target.error);
+                        processed++;
+                        if (processed === favorites.length) {
+                            resolve(favoriteBeasts);
+                        }
+                    };
+                });
+            };
+            
+            favRequest.onerror = (event) => {
+                console.error('Conjure favorites request error:', event.target.error);
+                reject('Error getting conjure favorites');
+            };
+        });
+    }
+    
+    /**
+     * Gets all legacy favorite beasts
+     * @returns {Promise} Resolves with array of favorite beast objects
+     */
+    function getAllFavorites() {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            // Try to get favorites from the specific stores first
+            Promise.all([
+                getAllWildshapeFavorites().catch(() => []),
+                getAllConjureFavorites().catch(() => [])
+            ])
+            .then(([wildshapeFavorites, conjureFavorites]) => {
+                // If we have favorites in either specific store, combine them
+                if (wildshapeFavorites.length > 0 || conjureFavorites.length > 0) {
+                    // Combine and deduplicate by ID
+                    const combinedFavorites = [...wildshapeFavorites];
+                    const wildshapeIds = new Set(wildshapeFavorites.map(beast => beast.id));
+                    
+                    conjureFavorites.forEach(beast => {
+                        if (!wildshapeIds.has(beast.id)) {
+                            combinedFavorites.push(beast);
+                        }
+                    });
+                    
+                    resolve(combinedFavorites);
+                    return;
+                }
+                
+                // Fall back to legacy favorites if needed
+                const transaction = db.transaction([FAVORITES_STORE, BEAST_STORE], 'readonly');
+                const favStore = transaction.objectStore(FAVORITES_STORE);
+                const beastStore = transaction.objectStore(BEAST_STORE);
+                
+                const favRequest = favStore.getAll();
+                
+                favRequest.onsuccess = () => {
+                    const favorites = favRequest.result;
+                    const favoriteBeasts = [];
+                    let processed = 0;
+                    
+                    if (favorites.length === 0) {
+                        // If no legacy favorites either, ensure defaults
+                        ensureDefaultFavorites()
+                            .then(defaultFavorites => {
+                                resolve(defaultFavorites);
+                            })
+                            .catch(error => {
+                                console.error('Error ensuring default favorites:', error);
+                                resolve([]);
+                            });
+                        return;
+                    }
+                    
+                    favorites.forEach(fav => {
+                        const beastRequest = beastStore.get(fav.id);
+                        
+                        beastRequest.onsuccess = () => {
+                            if (beastRequest.result) {
+                                favoriteBeasts.push(beastRequest.result);
+                            } else {
+                                console.warn(`Favorite beast with ID ${fav.id} not found in beast store`);
+                            }
+                            
+                            processed++;
+                            if (processed === favorites.length) {
+                                resolve(favoriteBeasts);
+                            }
+                        };
+                        
+                        beastRequest.onerror = (event) => {
+                            console.error('Beast request error:', event.target.error);
+                            processed++;
+                            if (processed === favorites.length) {
+                                resolve(favoriteBeasts);
+                            }
+                        };
+                    });
+                };
+                
+                favRequest.onerror = (event) => {
+                    console.error('Favorites request error:', event.target.error);
+                    reject('Error getting favorites');
+                };
+            })
+            .catch(error => {
+                console.error('Error retrieving combined favorites:', error);
+                reject('Error getting favorites');
+            });
         });
     }
     
@@ -846,19 +1224,18 @@ const DataManager = (function() {
     }
     
     /**
-     * Ensures default favorites (wolf, velociraptor, giant owl) are always available
+     * Ensures default wildshape favorites are available
      * @returns {Promise} Resolves with array of default favorite beast objects
      */
-    function ensureDefaultFavorites() {
+    function ensureDefaultWildshapeFavorites() {
         return new Promise((resolve, reject) => {
             if (!db) {
                 reject('Database not initialized');
                 return;
             }
             
-            const defaultIds = ['wolf', 'velociraptor', 'giant-owl'];
+            const defaultIds = ['wolf', 'brown-bear'];
             const defaultFavorites = [];
-            let processed = 0;
             
             // Get all beasts
             getAllBeasts().then(beasts => {
@@ -873,7 +1250,7 @@ const DataManager = (function() {
                     // Try to find beasts by name
                     missingIds.forEach(id => {
                         const nameToFind = id.replace(/-/g, ' ');
-                        const beast = beasts.find(b => b.name.toLowerCase() === nameToFind);
+                        const beast = beasts.find(b => b.name.toLowerCase() === nameToFind.toLowerCase());
                         if (beast) {
                             defaultBeasts.push(beast);
                         }
@@ -881,8 +1258,8 @@ const DataManager = (function() {
                 }
                 
                 // Add all default beasts as favorites
-                const favTransaction = db.transaction([FAVORITES_STORE], 'readwrite');
-                const favStore = favTransaction.objectStore(FAVORITES_STORE);
+                const favTransaction = db.transaction([WILDSHAPE_FAVORITES_STORE], 'readwrite');
+                const favStore = favTransaction.objectStore(WILDSHAPE_FAVORITES_STORE);
                 
                 defaultBeasts.forEach(beast => {
                     const favorite = {
@@ -895,16 +1272,172 @@ const DataManager = (function() {
                 });
                 
                 favTransaction.oncomplete = () => {
-                    console.log(`Added ${defaultBeasts.length} default favorites`);
+                    console.log(`Added ${defaultBeasts.length} default wildshape favorites`);
                     resolve(defaultFavorites);
                 };
                 
                 favTransaction.onerror = (event) => {
-                    console.error('Error adding default favorites:', event.target.error);
+                    console.error('Error adding default wildshape favorites:', event.target.error);
                     resolve(defaultFavorites); // Still return the beasts even if we couldn't save them as favorites
                 };
             }).catch(error => {
-                console.error('Error getting beasts for default favorites:', error);
+                console.error('Error getting beasts for default wildshape favorites:', error);
+                reject(error);
+            });
+        });
+    }
+    
+    /**
+     * Ensures default conjure favorites are available
+     * @returns {Promise} Resolves with array of default favorite beast objects
+     */
+    function ensureDefaultConjureFavorites() {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const defaultIds = ['wolf', 'velociraptor', 'giant-owl'];
+            const defaultFavorites = [];
+            
+            // Get all beasts
+            getAllBeasts().then(beasts => {
+                // Filter beasts by default IDs
+                const defaultBeasts = beasts.filter(beast => defaultIds.includes(beast.id));
+                
+                // If any default beasts are missing, we need to find them by name
+                const foundIds = defaultBeasts.map(beast => beast.id);
+                const missingIds = defaultIds.filter(id => !foundIds.includes(id));
+                
+                if (missingIds.length > 0) {
+                    // Try to find beasts by name
+                    missingIds.forEach(id => {
+                        const nameToFind = id.replace(/-/g, ' ');
+                        const beast = beasts.find(b => b.name.toLowerCase() === nameToFind.toLowerCase());
+                        if (beast) {
+                            defaultBeasts.push(beast);
+                        }
+                    });
+                }
+                
+                // Add all default beasts as favorites
+                const favTransaction = db.transaction([CONJURE_FAVORITES_STORE], 'readwrite');
+                const favStore = favTransaction.objectStore(CONJURE_FAVORITES_STORE);
+                
+                defaultBeasts.forEach(beast => {
+                    const favorite = {
+                        id: beast.id,
+                        dateAdded: new Date()
+                    };
+                    
+                    favStore.put(favorite);
+                    defaultFavorites.push(beast);
+                });
+                
+                favTransaction.oncomplete = () => {
+                    console.log(`Added ${defaultBeasts.length} default conjure favorites`);
+                    resolve(defaultFavorites);
+                };
+                
+                favTransaction.onerror = (event) => {
+                    console.error('Error adding default conjure favorites:', event.target.error);
+                    resolve(defaultFavorites); // Still return the beasts even if we couldn't save them as favorites
+                };
+            }).catch(error => {
+                console.error('Error getting beasts for default conjure favorites:', error);
+                reject(error);
+            });
+        });
+    }
+    
+    /**
+     * Ensures legacy default favorites (for backwards compatibility)
+     * @returns {Promise} Resolves with array of default favorite beast objects
+     */
+    function ensureDefaultFavorites() {
+        return new Promise((resolve, reject) => {
+            // First check if we have favorites in the new stores
+            Promise.all([
+                getAllWildshapeFavorites().catch(() => []),
+                getAllConjureFavorites().catch(() => [])
+            ])
+            .then(([wildshapeFavorites, conjureFavorites]) => {
+                // If we have favorites in either specific store, combine them
+                if (wildshapeFavorites.length > 0 || conjureFavorites.length > 0) {
+                    // Combine and deduplicate
+                    const combinedFavorites = [...wildshapeFavorites];
+                    const wildshapeIds = new Set(wildshapeFavorites.map(beast => beast.id));
+                    
+                    conjureFavorites.forEach(beast => {
+                        if (!wildshapeIds.has(beast.id)) {
+                            combinedFavorites.push(beast);
+                        }
+                    });
+                    
+                    resolve(combinedFavorites);
+                    return;
+                }
+            
+                // Otherwise set up legacy defaults
+                if (!db) {
+                    reject('Database not initialized');
+                    return;
+                }
+                
+                const defaultIds = ['wolf', 'velociraptor', 'giant-owl'];
+                const defaultFavorites = [];
+                
+                // Get all beasts
+                getAllBeasts().then(beasts => {
+                    // Filter beasts by default IDs
+                    const defaultBeasts = beasts.filter(beast => defaultIds.includes(beast.id));
+                    
+                    // If any default beasts are missing, we need to find them by name
+                    const foundIds = defaultBeasts.map(beast => beast.id);
+                    const missingIds = defaultIds.filter(id => !foundIds.includes(id));
+                    
+                    if (missingIds.length > 0) {
+                        // Try to find beasts by name
+                        missingIds.forEach(id => {
+                            const nameToFind = id.replace(/-/g, ' ');
+                            const beast = beasts.find(b => b.name.toLowerCase() === nameToFind.toLowerCase());
+                            if (beast) {
+                                defaultBeasts.push(beast);
+                            }
+                        });
+                    }
+                    
+                    // Add all default beasts as favorites
+                    const favTransaction = db.transaction([FAVORITES_STORE], 'readwrite');
+                    const favStore = favTransaction.objectStore(FAVORITES_STORE);
+                    
+                    defaultBeasts.forEach(beast => {
+                        const favorite = {
+                            id: beast.id,
+                            dateAdded: new Date()
+                        };
+                        
+                        favStore.put(favorite);
+                        defaultFavorites.push(beast);
+                    });
+                    
+                    favTransaction.oncomplete = () => {
+                        console.log(`Added ${defaultBeasts.length} default favorites`);
+                        resolve(defaultFavorites);
+                    };
+                    
+                    favTransaction.onerror = (event) => {
+                        console.error('Error adding default favorites:', event.target.error);
+                        resolve(defaultFavorites); // Still return the beasts even if we couldn't save them as favorites
+                    };
+                }).catch(error => {
+                    console.error('Error getting beasts for default favorites:', error);
+                    reject(error);
+                });
+            })
+            .catch(error => {
+                console.error('Error checking specific favorite stores:', error);
                 reject(error);
             });
         });
@@ -918,11 +1451,24 @@ const DataManager = (function() {
         getAllBeasts,
         getBeastById,
         getFilteredBeasts,
+        // Original favorites API (for backwards compatibility)
         addFavorite,
         removeFavorite,
         isFavorite,
         getAllFavorites,
         ensureDefaultFavorites,
+        // New separate favorites API
+        addWildshapeFavorite,
+        removeWildshapeFavorite,
+        isWildshapeFavorite,
+        getAllWildshapeFavorites,
+        ensureDefaultWildshapeFavorites,
+        addConjureFavorite,
+        removeConjureFavorite,
+        isConjureFavorite,
+        getAllConjureFavorites,
+        ensureDefaultConjureFavorites,
+        // Other methods
         clearAllData,
         loadBeastData
     };

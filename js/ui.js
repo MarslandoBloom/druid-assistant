@@ -126,34 +126,13 @@ const UIManager = (function() {
     }
     
     /**
-     * Formats source information into a display string
+     * Formats source information into a display string - not used anymore
      * @param {object} sourceInfo - Source information object
      * @returns {string} Formatted source string
      */
     function formatSourceInfo(sourceInfo) {
-        if (!sourceInfo) return "";
-        
-        let sourceText = "";
-        
-        // Main source
-        if (sourceInfo.mainSource) {
-            sourceText += `<em>${sourceInfo.mainSource}</em>`;
-            if (sourceInfo.mainPage) {
-                sourceText += `, page ${sourceInfo.mainPage}`;
-            }
-        }
-        
-        // Other sources
-        if (sourceInfo.otherSources && sourceInfo.otherSources.length > 0) {
-            sourceText += `. Also found in <em>${sourceInfo.otherSources.join('</em>; <em>')}</em>`;
-        }
-        
-        // SRD info
-        if (sourceInfo.inSRD) {
-            sourceText += ". Available in the SRD.";
-        }
-        
-        return sourceText;
+        // Source information display is completely removed
+        return "";
     }
     
     /**
@@ -277,10 +256,11 @@ const UIManager = (function() {
                 // Enable buttons
                 elements.wildshapeButton.disabled = false;
                 elements.conjureAnimalsButton.disabled = false;
-                elements.favoriteButton.disabled = false;
+                document.getElementById('wildshapeFavoriteButton').disabled = false;
+                document.getElementById('conjureFavoriteButton').disabled = false;
                 
-                // Update favorite button state
-                updateFavoriteButton(beastId);
+                // Update favorite buttons states
+                updateFavoriteButtons(beastId);
             })
             .catch(error => {
                 console.error('Error getting beast:', error);
@@ -289,24 +269,44 @@ const UIManager = (function() {
     }
     
     /**
-     * Updates the favorite button state based on beast's favorite status
+     * Updates the favorite buttons states based on beast's favorite status
      * @param {string} beastId - ID of beast to check
      */
-    function updateFavoriteButton(beastId) {
-        DataManager.isFavorite(beastId)
-            .then(isFavorite => {
-                if (isFavorite) {
-                    elements.favoriteButton.innerHTML = '<i class="bi bi-star-fill"></i> Favorited';
-                    elements.favoriteButton.classList.remove('btn-outline-success');
-                    elements.favoriteButton.classList.add('btn-success');
+    function updateFavoriteButtons(beastId) {
+        // Update Wildshape Favorite button
+        DataManager.isWildshapeFavorite(beastId)
+            .then(isWildshapeFavorite => {
+                const wildshapeFavoriteButton = document.getElementById('wildshapeFavoriteButton');
+                if (isWildshapeFavorite) {
+                    wildshapeFavoriteButton.innerHTML = '<i class="bi bi-star-fill"></i> Wildshape Favorited';
+                    wildshapeFavoriteButton.classList.remove('btn-outline-success');
+                    wildshapeFavoriteButton.classList.add('btn-success');
                 } else {
-                    elements.favoriteButton.innerHTML = '<i class="bi bi-star"></i> Favorite';
-                    elements.favoriteButton.classList.remove('btn-success');
-                    elements.favoriteButton.classList.add('btn-outline-success');
+                    wildshapeFavoriteButton.innerHTML = '<i class="bi bi-star"></i> Wildshape Favorite';
+                    wildshapeFavoriteButton.classList.remove('btn-success');
+                    wildshapeFavoriteButton.classList.add('btn-outline-success');
                 }
             })
             .catch(error => {
-                console.error('Error checking favorite status:', error);
+                console.error('Error checking wildshape favorite status:', error);
+            });
+            
+        // Update Conjure Favorite button
+        DataManager.isConjureFavorite(beastId)
+            .then(isConjureFavorite => {
+                const conjureFavoriteButton = document.getElementById('conjureFavoriteButton');
+                if (isConjureFavorite) {
+                    conjureFavoriteButton.innerHTML = '<i class="bi bi-star-fill"></i> Conjure Favorited';
+                    conjureFavoriteButton.classList.remove('btn-outline-success');
+                    conjureFavoriteButton.classList.add('btn-success');
+                } else {
+                    conjureFavoriteButton.innerHTML = '<i class="bi bi-star"></i> Conjure Favorite';
+                    conjureFavoriteButton.classList.remove('btn-success');
+                    conjureFavoriteButton.classList.add('btn-outline-success');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking conjure favorite status:', error);
             });
     }
     
@@ -593,15 +593,7 @@ const UIManager = (function() {
                 });
             }
             
-            // Add source information
-            if (sourceText) {
-                html += `
-                    <div class="statblock-separator"></div>
-                    <div class="statblock-source">
-                        ${sourceText}
-                    </div>
-                `;
-            }
+            // Source information removed completely
             
             // Close the statblock container
             html += `</div>`;
@@ -678,7 +670,89 @@ const UIManager = (function() {
     }
     
     /**
-     * Toggles a beast's favorite status
+     * Toggles a beast's wildshape favorite status
+     * @param {string} beastId - ID of beast to toggle
+     */
+    function toggleWildshapeFavorite(beastId) {
+        DataManager.isWildshapeFavorite(beastId)
+            .then(isWildshapeFavorite => {
+                if (isWildshapeFavorite) {
+                    return DataManager.removeWildshapeFavorite(beastId);
+                } else {
+                    return DataManager.addWildshapeFavorite(beastId);
+                }
+            })
+            .then(() => {
+                updateFavoriteButtons(beastId);
+                
+                // Update the list item appearance
+                const listItem = elements.beastList.querySelector(`[data-beast-id="${beastId}"]`);
+                if (listItem) {
+                    DataManager.isWildshapeFavorite(beastId)
+                        .then(isFav => {
+                            if (isFav) {
+                                listItem.classList.add('list-group-item-favorite');
+                            } else {
+                                // Only remove the class if it's not a conjure favorite
+                                DataManager.isConjureFavorite(beastId)
+                                    .then(isConjureFav => {
+                                        if (!isConjureFav) {
+                                            listItem.classList.remove('list-group-item-favorite');
+                                        }
+                                    });
+                            }
+                        });
+                }
+            })
+            .catch(error => {
+                console.error('Error toggling wildshape favorite:', error);
+                showError('Could not update wildshape favorite status');
+            });
+    }
+    
+    /**
+     * Toggles a beast's conjure favorite status
+     * @param {string} beastId - ID of beast to toggle
+     */
+    function toggleConjureFavorite(beastId) {
+        DataManager.isConjureFavorite(beastId)
+            .then(isConjureFavorite => {
+                if (isConjureFavorite) {
+                    return DataManager.removeConjureFavorite(beastId);
+                } else {
+                    return DataManager.addConjureFavorite(beastId);
+                }
+            })
+            .then(() => {
+                updateFavoriteButtons(beastId);
+                
+                // Update the list item appearance
+                const listItem = elements.beastList.querySelector(`[data-beast-id="${beastId}"]`);
+                if (listItem) {
+                    DataManager.isConjureFavorite(beastId)
+                        .then(isFav => {
+                            if (isFav) {
+                                listItem.classList.add('list-group-item-favorite');
+                            } else {
+                                // Only remove the class if it's not a wildshape favorite
+                                DataManager.isWildshapeFavorite(beastId)
+                                    .then(isWildshapeFav => {
+                                        if (!isWildshapeFav) {
+                                            listItem.classList.remove('list-group-item-favorite');
+                                        }
+                                    });
+                            }
+                        });
+                }
+            })
+            .catch(error => {
+                console.error('Error toggling conjure favorite:', error);
+                showError('Could not update conjure favorite status');
+            });
+    }
+    
+    /**
+     * Toggles a beast's general favorite status (legacy - for backwards compatibility)
      * @param {string} beastId - ID of beast to toggle
      */
     function toggleFavorite(beastId) {
@@ -691,7 +765,7 @@ const UIManager = (function() {
                 }
             })
             .then(() => {
-                updateFavoriteButton(beastId);
+                updateFavoriteButtons(beastId);
                 
                 // Update the list item appearance
                 const listItem = elements.beastList.querySelector(`[data-beast-id="${beastId}"]`);
@@ -755,7 +829,35 @@ const UIManager = (function() {
     }
     
     /**
-     * Shows only favorite beasts
+     * Shows only wildshape favorite beasts
+     */
+    function showOnlyWildshapeFavorites() {
+        DataManager.getAllWildshapeFavorites()
+            .then(beasts => {
+                renderBeastList(beasts);
+            })
+            .catch(error => {
+                console.error('Error getting wildshape favorites:', error);
+                showError('Could not load wildshape favorites');
+            });
+    }
+    
+    /**
+     * Shows only conjure favorite beasts
+     */
+    function showOnlyConjureFavorites() {
+        DataManager.getAllConjureFavorites()
+            .then(beasts => {
+                renderBeastList(beasts);
+            })
+            .catch(error => {
+                console.error('Error getting conjure favorites:', error);
+                showError('Could not load conjure favorites');
+            });
+    }
+    
+    /**
+     * Shows only favorite beasts (both types combined)
      */
     function showOnlyFavorites() {
         DataManager.getAllFavorites()
@@ -1059,6 +1161,7 @@ const UIManager = (function() {
                 </div>
             `;
         }
+        // Source information removed by design
         
         // Close container
         html += `</div>`;
@@ -2031,6 +2134,12 @@ const UIManager = (function() {
         
         // Internal state getter
         getCurrentBeast: () => currentBeast,
+        
+        // Expose favorites functions
+        toggleWildshapeFavorite,
+        toggleConjureFavorite,
+        showOnlyWildshapeFavorites,
+        showOnlyConjureFavorites,
         
         // Filter setter/getter
         setFilter: (key, value) => {
