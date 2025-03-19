@@ -1234,28 +1234,34 @@ const DataManager = (function() {
                 return;
             }
             
-            const defaultIds = ['wolf', 'brown-bear'];
+            const defaultNames = [
+                'Tiger',
+                'Giant Toad',
+                'Giant Hyena',
+                'Dire Wolf',
+                'Deinonychus',
+                'Brown Bear',
+                'Rhinoceros',
+                'Quetzalcoatlus',
+                'Giant Elk',
+                'Giant Constrictor Snake',
+                'Cave Bear'
+            ];
             const defaultFavorites = [];
             
             // Get all beasts
             getAllBeasts().then(beasts => {
-                // Filter beasts by default IDs
-                const defaultBeasts = beasts.filter(beast => defaultIds.includes(beast.id));
+                // Find beasts that match our default names (case insensitive)
+                const defaultBeasts = [];
                 
-                // If any default beasts are missing, we need to find them by name
-                const foundIds = defaultBeasts.map(beast => beast.id);
-                const missingIds = defaultIds.filter(id => !foundIds.includes(id));
-                
-                if (missingIds.length > 0) {
-                    // Try to find beasts by name
-                    missingIds.forEach(id => {
-                        const nameToFind = id.replace(/-/g, ' ');
-                        const beast = beasts.find(b => b.name.toLowerCase() === nameToFind.toLowerCase());
-                        if (beast) {
-                            defaultBeasts.push(beast);
-                        }
-                    });
-                }
+                defaultNames.forEach(name => {
+                    const beast = beasts.find(b => b.name.toLowerCase() === name.toLowerCase());
+                    if (beast) {
+                        defaultBeasts.push(beast);
+                    } else {
+                        console.log(`Default wildshape beast not found: ${name}`);
+                    }
+                });
                 
                 // Add all default beasts as favorites
                 const favTransaction = db.transaction([WILDSHAPE_FAVORITES_STORE], 'readwrite');
@@ -1298,28 +1304,32 @@ const DataManager = (function() {
                 return;
             }
             
-            const defaultIds = ['wolf', 'velociraptor', 'giant-owl'];
+            const defaultNames = [
+                'Black Bear',
+                'Constrictor Snake',
+                'Elk',
+                'Giant Owl',
+                'Giant Poisonous Snake',
+                'Hadrosaurus',
+                'Ox',
+                'Velociraptor',
+                'Wolf'
+            ];
             const defaultFavorites = [];
             
             // Get all beasts
             getAllBeasts().then(beasts => {
-                // Filter beasts by default IDs
-                const defaultBeasts = beasts.filter(beast => defaultIds.includes(beast.id));
+                // Find beasts that match our default names (case insensitive)
+                const defaultBeasts = [];
                 
-                // If any default beasts are missing, we need to find them by name
-                const foundIds = defaultBeasts.map(beast => beast.id);
-                const missingIds = defaultIds.filter(id => !foundIds.includes(id));
-                
-                if (missingIds.length > 0) {
-                    // Try to find beasts by name
-                    missingIds.forEach(id => {
-                        const nameToFind = id.replace(/-/g, ' ');
-                        const beast = beasts.find(b => b.name.toLowerCase() === nameToFind.toLowerCase());
-                        if (beast) {
-                            defaultBeasts.push(beast);
-                        }
-                    });
-                }
+                defaultNames.forEach(name => {
+                    const beast = beasts.find(b => b.name.toLowerCase() === name.toLowerCase());
+                    if (beast) {
+                        defaultBeasts.push(beast);
+                    } else {
+                        console.log(`Default conjure beast not found: ${name}`);
+                    }
+                });
                 
                 // Add all default beasts as favorites
                 const favTransaction = db.transaction([CONJURE_FAVORITES_STORE], 'readwrite');
@@ -1385,28 +1395,29 @@ const DataManager = (function() {
                     return;
                 }
                 
-                const defaultIds = ['wolf', 'velociraptor', 'giant-owl'];
+                // Use a combination of both wildshape and conjure favorites as defaults
+                const defaultNames = [
+                    'Wolf',
+                    'Giant Owl',
+                    'Brown Bear',
+                    'Tiger',
+                    'Velociraptor'
+                ];
                 const defaultFavorites = [];
                 
                 // Get all beasts
                 getAllBeasts().then(beasts => {
-                    // Filter beasts by default IDs
-                    const defaultBeasts = beasts.filter(beast => defaultIds.includes(beast.id));
+                    // Find beasts that match our default names (case insensitive)
+                    const defaultBeasts = [];
                     
-                    // If any default beasts are missing, we need to find them by name
-                    const foundIds = defaultBeasts.map(beast => beast.id);
-                    const missingIds = defaultIds.filter(id => !foundIds.includes(id));
-                    
-                    if (missingIds.length > 0) {
-                        // Try to find beasts by name
-                        missingIds.forEach(id => {
-                            const nameToFind = id.replace(/-/g, ' ');
-                            const beast = beasts.find(b => b.name.toLowerCase() === nameToFind.toLowerCase());
-                            if (beast) {
-                                defaultBeasts.push(beast);
-                            }
-                        });
-                    }
+                    defaultNames.forEach(name => {
+                        const beast = beasts.find(b => b.name.toLowerCase() === name.toLowerCase());
+                        if (beast) {
+                            defaultBeasts.push(beast);
+                        } else {
+                            console.log(`Default beast not found: ${name}`);
+                        }
+                    });
                     
                     // Add all default beasts as favorites
                     const favTransaction = db.transaction([FAVORITES_STORE], 'readwrite');

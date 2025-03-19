@@ -4,6 +4,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+
     // DOM elements
     const elements = {
         // Tabs and navigation
