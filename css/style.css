@@ -290,17 +290,24 @@ body {
 }
 
 .dice-btn {
-    background-color: #e6e6fa; /* Light purple like in the image */
-    border: 1px solid #ccc;
+    background-color: #ffffff;
+    border: 1px solid var(--druid-green);
     padding: 6px 4px;
     border-radius: 4px;
     font-size: 14px;
     transition: all 0.2s;
+    color: var(--druid-green);
 }
 
 .dice-btn:hover {
     background-color: var(--druid-green-light);
     border-color: var(--druid-green);
+}
+
+.dice-btn:active {
+    background-color: var(--druid-green);
+    border-color: var(--druid-green);
+    color: white;
 }
 
 .dice-results {

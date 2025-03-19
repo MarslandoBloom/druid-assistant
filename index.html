@@ -168,7 +168,7 @@
                         <div class="card">
                             <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                                 <h3 class="mb-0" id="wildshapeTitle">Wildshape Form</h3>
-                                <button class="btn btn-light" id="resetWildshape">Reset</button>
+                                <button class="btn btn-sm btn-light" id="resetWildshape">Reset</button>
                             </div>
                             <div class="card-body" id="wildshapeStatblock">
                                 <div class="text-center p-5">
@@ -185,21 +185,22 @@
             <div class="container-fluid p-3">
                 <!-- Top Options Bar -->
                 <div class="card mb-3">
-                    <div class="card-header bg-success text-white">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                         <h4 class="mb-0">Dice Options</h4>
+                        <button class="btn btn-sm btn-light" id="reset-dice">Reset All</button>
                     </div>
                     <div class="card-body d-flex flex-wrap align-items-center gap-3">
                         <!-- Roll Type Selection -->
                         <div class="dice-option">
                             <div class="btn-group" role="group">
                                 <input type="radio" class="btn-check" name="rollType" id="normal-roll" value="normal" checked>
-                                <label class="btn btn-outline-success" for="normal-roll">Normal</label>
+                                <label class="btn btn-sm btn-outline-success" for="normal-roll">Normal</label>
                                 
                                 <input type="radio" class="btn-check" name="rollType" id="advantage-roll" value="advantage">
-                                <label class="btn btn-outline-success" for="advantage-roll">Advantage</label>
+                                <label class="btn btn-sm btn-outline-success" for="advantage-roll">Advantage</label>
                                 
                                 <input type="radio" class="btn-check" name="rollType" id="disadvantage-roll" value="disadvantage">
-                                <label class="btn btn-outline-success" for="disadvantage-roll">Disadvantage</label>
+                                <label class="btn btn-sm btn-outline-success" for="disadvantage-roll">Disadvantage</label>
                             </div>
                         </div>
                         
@@ -218,8 +219,8 @@
                         </div>
                         
                         <!-- Reset Button -->
-                        <div class="dice-option ms-auto">
-                            <button class="btn btn-outline-danger" id="reset-dice">Reset All</button>
+                        <div class="dice-option ms-auto d-none">
+                            <!-- Moved to the header -->
                         </div>
                     </div>
                 </div>
@@ -377,18 +378,19 @@
                     <div class="card">
                         <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                             <h4 class="mb-0">Conjured Animals</h4>
-                            <div class="d-flex flex-wrap align-items-center conjure-header-controls">
-                                <button id="reset-conjure-btn" class="btn btn-light btn-sm me-2">Release Summons</button>
-                                <button id="reset-rolls-btn" class="btn btn-light btn-sm me-2">Reset Rolls</button>
-                                <button id="select-all-btn" class="btn btn-light btn-sm me-2">Select All</button>
-                                <button id="select-none-btn" class="btn btn-light btn-sm me-2">Select None</button>
-                                <select id="advantage-select" class="form-select form-select-sm d-inline-block w-auto me-2">
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <button id="reset-conjure-btn" class="btn btn-sm btn-light">Release Summons</button>
+                                <button id="reset-rolls-btn" class="btn btn-sm btn-light">Reset Rolls</button>
+                                <button id="select-all-btn" class="btn btn-sm btn-light">Select All</button>
+                                <button id="select-none-btn" class="btn btn-sm btn-light">Select None</button>
+                                <select id="advantage-select" class="form-select form-select-sm d-inline-block w-auto">
                                     <option value="normal">Normal Roll</option>
                                     <option value="advantage">Advantage</option>
                                     <option value="disadvantage">Disadvantage</option>
                                 </select>
-                                <button id="group-attack-btn" class="btn btn-primary btn-sm me-2">Group Attack</button>
-                                <button id="group-damage-btn" class="btn btn-danger btn-sm">Group Damage <span id="total-group-damage"></span></button>
+                                <button id="group-attack-btn" class="btn btn-sm btn-success">Roll</button>
+                                <button id="group-damage-btn" class="btn btn-sm btn-success">Damage <span id="total-group-damage"></span></button>
+                            </div>
                             </div>
                         </div>
                         <div class="card-body" id="conjured-animals-container">
