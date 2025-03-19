@@ -429,12 +429,20 @@ body {
 /* Conjure Animals tab statblock */
 #conjure-statblock .statblock-container {
     font-size: 0.85rem;
-    max-height: 600px;
     overflow-y: auto;
 }
 
 #conjure-statblock .statblock-action {
     margin-bottom: 5px;
+}
+
+#conjure-statblock-container {
+    max-height: 700px;
+}
+
+#conjure-statblock {
+    max-height: 600px;
+    overflow-y: auto;
 }
 
 /* Responsive adjustments */

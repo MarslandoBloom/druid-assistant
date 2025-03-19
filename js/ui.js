@@ -1200,10 +1200,10 @@ const UIManager = (function() {
                         </div>
                     </div>
                     <div class="attack-section">
+                        <div class="attack-checkboxes mb-2">
+                            ${createAttackOptionsHTML(beast)}
+                        </div>
                         <div class="d-flex mb-2">
-                            <select class="form-select form-select-sm attack-select me-2">
-                                ${createAttackOptionsHTML(beast)}
-                            </select>
                             <select class="form-select form-select-sm advantage-select me-2">
                                 <option value="normal">Normal</option>
                                 <option value="advantage">Advantage</option>
@@ -1250,18 +1250,25 @@ const UIManager = (function() {
      * @returns {string} HTML for select options
      */
     function createAttackOptionsHTML(beast) {
-        let options = '<option value="all">All Attacks</option>';
+        let attacksHtml = '';
         
         if (beast.actions) {
+            // Add a checkbox for each attack
             beast.actions.forEach(action => {
                 // Check if it's an attack action
                 if (action.desc && (action.desc.includes('Weapon Attack:') || action.desc.includes('Melee Attack:') || action.desc.includes('Ranged Attack:'))) {
-                    options += `<option value="${action.name}">${action.name}</option>`;
+                    attacksHtml += `
+                    <div class="form-check">
+                        <input class="form-check-input attack-checkbox" type="checkbox" value="${action.name}" id="attack-${action.name.replace(/\s+/g, '-').toLowerCase()}" checked>
+                        <label class="form-check-label" for="attack-${action.name.replace(/\s+/g, '-').toLowerCase()}">
+                            ${action.name}
+                        </label>
+                    </div>`;
                 }
             });
         }
         
-        return options;
+        return attacksHtml;
     }
     
     /**
@@ -1292,14 +1299,16 @@ const UIManager = (function() {
         
         // Attack roll
         tile.querySelector('.attack-roll-btn').addEventListener('click', () => {
-            const attackType = tile.querySelector('.attack-select').value;
-            handleAttackRoll(animalId, attackType, beast);
+            const attackCheckboxes = tile.querySelectorAll('.attack-checkbox:checked');
+            const selectedAttacks = Array.from(attackCheckboxes).map(checkbox => checkbox.value);
+            handleAttackRoll(animalId, selectedAttacks, beast);
         });
         
         // Damage roll
         tile.querySelector('.damage-roll-btn').addEventListener('click', () => {
-            const attackType = tile.querySelector('.attack-select').value;
-            handleDamageRoll(animalId, attackType, beast);
+            const attackCheckboxes = tile.querySelectorAll('.attack-checkbox:checked');
+            const selectedAttacks = Array.from(attackCheckboxes).map(checkbox => checkbox.value);
+            handleDamageRoll(animalId, selectedAttacks, beast);
         });
     }
     
@@ -1752,7 +1761,7 @@ const UIManager = (function() {
      * @param {string} attackType - Attack type ("all" or specific attack name)
      * @param {Object} beast - Beast object
      */
-    function handleAttackRoll(animalId, attackType, beast) {
+    function handleAttackRoll(animalId, attackTypes, beast) {
         // Get advantage setting for this specific animal
         const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
         if (!tile) return;
@@ -1761,7 +1770,7 @@ const UIManager = (function() {
         let results = [];
         
         // Get attacks to roll
-        const attacks = getAttacksToRoll(attackType, beast);
+        const attacks = getAttacksToRoll(attackTypes, beast);
         
         // Roll for each attack
         attacks.forEach(attack => {
@@ -1830,11 +1839,11 @@ const UIManager = (function() {
      * @param {string} attackType - Attack type ("all" or specific attack name)
      * @param {Object} beast - Beast object
      */
-    function handleDamageRoll(animalId, attackType, beast) {
+    function handleDamageRoll(animalId, attackTypes, beast) {
         let results = [];
         
         // Get attacks to roll
-        const attacks = getAttacksToRoll(attackType, beast);
+        const attacks = getAttacksToRoll(attackTypes, beast);
         
         // Roll for each attack
         attacks.forEach(attack => {
@@ -1849,16 +1858,16 @@ const UIManager = (function() {
                 const { diceCount, diceType, bonus } = damageInfo;
                 let rolls = [];
                 
-                // Double dice on critical hit
+                // Double dice on critical hit - per D&D 5e rules
                 const effectiveDiceCount = isCritical ? diceCount * 2 : diceCount;
                 
                 for (let i = 0; i < effectiveDiceCount; i++) {
                     rolls.push(Math.floor(Math.random() * diceType) + 1);
                 }
                 
-                // Calculate total
+                // Calculate total - only add the modifier once, not doubled on critical hits per D&D 5e rules
                 const diceTotal = rolls.reduce((sum, roll) => sum + roll, 0);
-                const damageTotal = diceTotal + bonus;
+                const damageTotal = diceTotal + bonus; // Bonus added just once, not doubled on crits
                 
                 // Format details
                 const damageDetails = `${rolls.join(' + ')}${bonus ? ' + ' + bonus : ''} = ${damageTotal}`;
@@ -1900,8 +1909,30 @@ const UIManager = (function() {
     function extractDamageFormula(desc) {
         if (!desc) return null;
         
-        // Look for damage format like "13 (2d8 + 4)" or "7 (2d6)" inside the description
-        const match = desc.match(/\d+\s*\((\d+)d(\d+)(?:\s*\+\s*(\d+))?\)/);
+        // Example formats:
+        // "13 (2d8 + 4) piercing damage"
+        // "7 (2d6) slashing damage"
+        // "6 (1d6 + 3) slashing damage"
+        // "Claw: 11 (2d6 + 4) slashing damage"
+        
+        // First try the standard format with parentheses
+        let match = desc.match(/\d+\s*\((\d+)d(\d+)(?:\s*\+\s*(\d+))?\)/);
+        
+        // If that doesn't work, try a more forgiving pattern without parentheses
+        if (!match) {
+            match = desc.match(/(\d+)d(\d+)(?:\s*\+\s*(\d+))?/);
+        }
+        
+        // Additionally look for specific attack names like "Claw" if all else fails
+        if (!match && (desc.includes("Claw") || desc.includes("claw"))) {
+            // Default values for common claw attacks if we can't extract them
+            console.log("Using fallback values for claw attack: " + desc);
+            return {
+                diceCount: 2, // Most claw attacks use 2 dice
+                diceType: 6,  // Usually d6
+                bonus: 3      // Typical modifier
+            };
+        }
         
         if (match) {
             return {
@@ -1929,11 +1960,12 @@ const UIManager = (function() {
                 
         // Roll for each selected animal using their individually selected attack
         selectedAnimals.forEach(animalId => {
-            // Get the attack type from each animal's own dropdown
+            // Get the selected attacks from checkboxes
             const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
             if (!tile) return;
             
-            const attackType = tile.querySelector('.attack-select').value;
+            const attackCheckboxes = tile.querySelectorAll('.attack-checkbox:checked');
+            const selectedAttacks = Array.from(attackCheckboxes).map(checkbox => checkbox.value);
             
             // Override the individual animal's advantage setting with the global one
             const animalAdvantageSelect = tile.querySelector('.advantage-select');
@@ -1941,7 +1973,7 @@ const UIManager = (function() {
                 animalAdvantageSelect.value = advantage;
             }
             
-            handleAttackRoll(animalId, attackType, currentSummonedBeast);
+            handleAttackRoll(animalId, selectedAttacks, currentSummonedBeast);
         });
     }
     
@@ -1958,14 +1990,15 @@ const UIManager = (function() {
         let totalDamage = 0;
         
         selectedAnimals.forEach(animalId => {
-            // Get the attack type from each animal's own dropdown
+            // Get the selected attacks from checkboxes
             const tile = document.querySelector(`.animal-tile[data-animal-id="${animalId}"]`);
             if (!tile) return;
             
-            const attackType = tile.querySelector('.attack-select').value;
+            const attackCheckboxes = tile.querySelectorAll('.attack-checkbox:checked');
+            const selectedAttacks = Array.from(attackCheckboxes).map(checkbox => checkbox.value);
             
             // Get attacks to roll
-            const attacks = getAttacksToRoll(attackType, currentSummonedBeast);
+            const attacks = getAttacksToRoll(selectedAttacks, currentSummonedBeast);
             
             // Roll for each attack
             attacks.forEach(attack => {
@@ -1980,16 +2013,16 @@ const UIManager = (function() {
                     const { diceCount, diceType, bonus } = damageInfo;
                     let rolls = [];
                     
-                    // Double dice on critical hit
+                    // Double dice on critical hit - per D&D 5e rules
                     const effectiveDiceCount = isCritical ? diceCount * 2 : diceCount;
                     
                     for (let i = 0; i < effectiveDiceCount; i++) {
                         rolls.push(Math.floor(Math.random() * diceType) + 1);
                     }
                     
-                    // Calculate total
+                    // Calculate total - add bonus only once (not doubled on crits)
                     const diceTotal = rolls.reduce((sum, roll) => sum + roll, 0);
-                    const damageTotal = diceTotal + bonus;
+                    const damageTotal = diceTotal + bonus; // Bonus only added once per 5e rules
                     
                     // Add to total damage
                     totalDamage += damageTotal;
@@ -1997,11 +2030,11 @@ const UIManager = (function() {
             });
             
             // Call normal damage roll to display results
-            handleDamageRoll(animalId, attackType, currentSummonedBeast);
+            handleDamageRoll(animalId, selectedAttacks, currentSummonedBeast);
         });
         
         // Display total group damage
-        document.getElementById('total-group-damage').textContent = totalDamage;
+        document.getElementById('total-group-damage').textContent = ' ' + totalDamage;
     }
     
     /**
@@ -2059,22 +2092,33 @@ const UIManager = (function() {
      * @param {Object} beast - Beast object
      * @returns {Array} Array of attack objects
      */
-    function getAttacksToRoll(attackType, beast) {
+    function getAttacksToRoll(attackTypes, beast) {
         let attacks = [];
         
-        if (attackType === 'all') {
-            // Get all attacks
+        // attackTypes can be an array of attack names or a single attack name
+        if (Array.isArray(attackTypes)) {
+            // Get specified attacks
+            attackTypes.forEach(attackName => {
+                const attack = beast.actions.find(action => action.name === attackName);
+                if (attack) {
+                    attacks.push(attack);
+                }
+            });
+        } else if (typeof attackTypes === 'string') {
+            // Legacy support for single attack name
+            const attack = beast.actions.find(action => action.name === attackTypes);
+            if (attack) {
+                attacks.push(attack);
+            }
+        }
+        
+        // If no attacks were found, default to all attacks
+        if (attacks.length === 0) {
             beast.actions.forEach(action => {
                 if (action.desc && (action.desc.includes('Weapon Attack:') || action.desc.includes('Melee Attack:') || action.desc.includes('Ranged Attack:'))) {
                     attacks.push(action);
                 }
             });
-        } else {
-            // Get specific attack
-            const attack = beast.actions.find(action => action.name === attackType);
-            if (attack) {
-                attacks.push(attack);
-            }
         }
         
         return attacks;

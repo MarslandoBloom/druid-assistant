@@ -373,8 +373,8 @@
             <!-- Conjure Animals Tab -->
             <div class="tab-pane fade p-0" id="conjure-animals" role="tabpanel" aria-labelledby="conjure-animals-tab">
             <div class="row m-0">
-                <!-- Top Section: Animal Tiles (3/4) and Statblock (1/4) -->
-                <div class="col-md-9 p-3">
+                <!-- Top Section with both animal tiles and statblock side by side -->
+                <div class="col-12 p-3">
                     <div class="card">
                         <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                             <h4 class="mb-0">Conjured Animals</h4>
@@ -388,24 +388,30 @@
                                     <option value="advantage">Advantage</option>
                                     <option value="disadvantage">Disadvantage</option>
                                 </select>
-                                <button id="group-attack-btn" class="btn btn-sm btn-success">Roll</button>
-                                <button id="group-damage-btn" class="btn btn-sm btn-success">Damage <span id="total-group-damage"></span></button>
+                                <button id="group-attack-btn" class="btn btn-sm btn-primary">Roll</button>
+                                <button id="group-damage-btn" class="btn btn-sm btn-danger">Damage <span id="total-group-damage"></span></button>
                             </div>
-                            </div>
                         </div>
-                        <div class="card-body" id="conjured-animals-container">
-                            <div id="conjured-animals-list" class="row"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 p-3">
-                    <div class="card">
-                        <div class="card-header bg-success text-white">
-                            <h4 class="mb-0">Statblock</h4>
-                        </div>
-                        <div class="card-body" id="conjure-statblock">
-                            <div class="text-center p-2">
-                                <p class="text-muted">No beast selected for conjuring</p>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Animal Tiles (3/4) -->
+                                <div class="col-md-9" id="conjured-animals-container">
+                                    <div id="conjured-animals-list" class="row"></div>
+                                </div>
+                                
+                                <!-- Statblock (1/4) -->
+                                <div class="col-md-3" id="conjure-statblock-container">
+                                    <div class="card h-100">
+                                        <div class="card-header bg-success text-white">
+                                            <h5 class="mb-0">Statblock</h5>
+                                        </div>
+                                        <div class="card-body overflow-auto" id="conjure-statblock">
+                                            <div class="text-center p-2">
+                                                <p class="text-muted">No beast selected for conjuring</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
