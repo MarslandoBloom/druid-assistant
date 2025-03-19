@@ -170,6 +170,26 @@
                                 <h3 class="mb-0" id="wildshapeTitle">Wildshape Form</h3>
                                 <button class="btn btn-sm btn-light" id="resetWildshape">Reset</button>
                             </div>
+                            <div class="card-body bg-light p-3" id="wildshapeHealthTracker">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h5 class="mb-0">Health Tracker</h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" id="wildshapeDamageInput" placeholder="Amount" min="1" value="1">
+                                            <button class="btn btn-outline-danger" id="wildshapeDamageBtn">Damage</button>
+                                        </div>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" id="wildshapeHealInput" placeholder="Amount" min="1" value="1">
+                                            <button class="btn btn-outline-success" id="wildshapeHealBtn">Heal</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" id="wildshapeHpBar" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                                        <span id="wildshapeHpText">No beast selected</span>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="card-body" id="wildshapeStatblock">
                                 <div class="text-center p-5">
                                     <h3>No beast selected</h3>

@@ -176,6 +176,44 @@ body {
 
 /* Source information is removed */
 
+/* Wildshape Tab Styling */
+#wildshapeHealthTracker {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+#wildshapeHealthTracker .progress {
+    height: 25px;
+}
+
+#wildshapeHealthTracker .progress-bar {
+    font-weight: bold;
+}
+
+#wildshapeHealthTracker .input-group {
+    width: auto;
+}
+
+#wildshapeHealthTracker input[type="number"] {
+    width: 80px;
+}
+
+@media (max-width: 768px) {
+    #wildshapeHealthTracker .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    #wildshapeHealthTracker .input-group {
+        margin-bottom: 5px;
+        width: 100%;
+    }
+    
+    #wildshapeHealthTracker input[type="number"] {
+        width: auto;
+    }
+}
+
 /* Conjure Animals Tab Styling */
 #conjure-animals {
     margin-top: 0 !important;

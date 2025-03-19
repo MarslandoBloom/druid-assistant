@@ -173,9 +173,44 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             document.getElementById('wildshapeTitle').textContent = 'Wildshape Form';
             
+            // Reset health tracker
+            resetWildshapeHealthTracker();
+            
             // Return to statblock tab
             const statblockTabEl = new bootstrap.Tab(elements.statblockTab);
             statblockTabEl.show();
+        });
+        
+        // Wildshape damage button
+        document.getElementById('wildshapeDamageBtn').addEventListener('click', function() {
+            const currentBeast = UIManager.getCurrentBeast();
+            if (!currentBeast) return;
+            
+            const damageInput = document.getElementById('wildshapeDamageInput');
+            const damageAmount = parseInt(damageInput.value);
+            
+            if (isNaN(damageAmount) || damageAmount <= 0) {
+                alert('Please enter a valid positive number');
+                return;
+            }
+            
+            updateWildshapeHealth(-damageAmount);
+        });
+        
+        // Wildshape heal button
+        document.getElementById('wildshapeHealBtn').addEventListener('click', function() {
+            const currentBeast = UIManager.getCurrentBeast();
+            if (!currentBeast) return;
+            
+            const healInput = document.getElementById('wildshapeHealInput');
+            const healAmount = parseInt(healInput.value);
+            
+            if (isNaN(healAmount) || healAmount <= 0) {
+                alert('Please enter a valid positive number');
+                return;
+            }
+            
+            updateWildshapeHealth(healAmount);
         });
         
         // Beast search
@@ -364,6 +399,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Render the wildshape statblock
                 UIManager.renderWildshapeStatblock(currentBeast);
                 
+                // Initialize health tracker
+                initWildshapeHealthTracker(currentBeast);
+                
                 // Switch to wildshape tab
                 const wildshapeTabEl = new bootstrap.Tab(elements.wildshapeTab);
                 wildshapeTabEl.show();
@@ -531,6 +569,124 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
             }
         });
+    }
+    
+    /**
+     * Updates the wildshape health tracker
+     * @param {Object} beast - Beast object
+     */
+    function initWildshapeHealthTracker(beast) {
+        if (!beast) return;
+        
+        // Extract max HP from beast's hp string
+        const maxHp = extractMaxHP(beast.hp);
+        
+        // Store current and max HP in a data attribute
+        const hpBar = document.getElementById('wildshapeHpBar');
+        hpBar.dataset.currentHp = maxHp;
+        hpBar.dataset.maxHp = maxHp;
+        
+        // Update display
+        updateWildshapeHealthDisplay();
+    }
+    
+    /**
+     * Resets the wildshape health tracker
+     */
+    function resetWildshapeHealthTracker() {
+        const hpBar = document.getElementById('wildshapeHpBar');
+        hpBar.dataset.currentHp = 0;
+        hpBar.dataset.maxHp = 100;
+        
+        // Reset display
+        hpBar.style.width = '100%';
+        hpBar.className = 'progress-bar bg-secondary';
+        document.getElementById('wildshapeHpText').textContent = 'No beast selected';
+    }
+    
+    /**
+     * Updates the wildshape health
+     * @param {number} change - Amount to change health by (positive for healing, negative for damage)
+     */
+    function updateWildshapeHealth(change) {
+        const hpBar = document.getElementById('wildshapeHpBar');
+        const currentHp = parseInt(hpBar.dataset.currentHp);
+        const maxHp = parseInt(hpBar.dataset.maxHp);
+        
+        // Calculate new HP value and potential excess damage
+        const rawNewHp = currentHp + change;
+        const newHp = Math.max(0, Math.min(maxHp, rawNewHp));
+        
+        // Check if there is excess damage (HP would be below 0)
+        if (rawNewHp < 0) {
+            const excessDamage = Math.abs(rawNewHp);
+            
+            // Show confirmation dialog
+            if (confirm(`Your wildshape form has dropped to 0 HP with ${excessDamage} excess damage.\n\nClick OK to return to your normal form (statblock tab) or Cancel to remain in wildshape form with 0 HP.`)) {
+                // User clicked OK - reset and return to statblock tab
+                resetWildshapeHealthTracker();
+                
+                // Return to statblock tab
+                const statblockTabEl = new bootstrap.Tab(elements.statblockTab);
+                statblockTabEl.show();
+                return;
+            }
+            // User clicked Cancel - stay in form with 0 HP
+            hpBar.dataset.currentHp = 0;
+        } else {
+            // Normal update
+            hpBar.dataset.currentHp = newHp;
+        }
+        
+        // Update display
+        updateWildshapeHealthDisplay();
+    }
+    
+    /**
+     * Updates the wildshape health display
+     */
+    function updateWildshapeHealthDisplay() {
+        const hpBar = document.getElementById('wildshapeHpBar');
+        const currentHp = parseInt(hpBar.dataset.currentHp);
+        const maxHp = parseInt(hpBar.dataset.maxHp);
+        
+        // Calculate percentage
+        const percentage = (currentHp / maxHp) * 100;
+        
+        // Update progress bar width
+        hpBar.style.width = percentage + '%';
+        
+        // Update text
+        document.getElementById('wildshapeHpText').textContent = `${currentHp}/${maxHp} HP`;
+        
+        // Update color based on health percentage
+        if (percentage <= 0) {
+            hpBar.className = 'progress-bar bg-danger';
+        } else if (percentage <= 25) {
+            hpBar.className = 'progress-bar bg-danger';
+        } else if (percentage <= 50) {
+            hpBar.className = 'progress-bar bg-warning';
+        } else {
+            hpBar.className = 'progress-bar bg-success';
+        }
+    }
+    
+    /**
+     * Extracts max HP from a HP string
+     * @param {string} hpString - HP string (e.g. "45 (6d10 + 12)")
+     * @returns {number} Max HP value
+     */
+    function extractMaxHP(hpString) {
+        if (!hpString) return 10;
+        
+        // Try to extract just the number at the beginning
+        const match = hpString.match(/^(\d+)/);
+        if (match && match[1]) {
+            return parseInt(match[1]);
+        }
+        
+        // Fallback
+        return 10;
     }
     
     // Initialize the application
