@@ -136,27 +136,23 @@ const UIManager = (function() {
     }
     
     /**
-     * Renders the list of beasts based on filters
-     * @param {Array} beasts - Array of beast objects to display
+     * Sorts beasts according to the current sort settings
+     * @param {Array} beasts - Array of beast objects to sort
+     * @returns {Array} Sorted array of beasts
      */
-    function renderBeastList(beasts) {
-        elements.beastList.innerHTML = '';
+    function sortBeasts(beasts) {
+        // Create a new array to avoid modifying the original
+        const sortedBeasts = [...beasts];
         
-        if (beasts.length === 0) {
-            elements.beastList.innerHTML = '<div class="text-center p-4">No beasts found</div>';
-            return;
-        }
-        
-        // Sort beasts based on current sort option and direction
         switch (currentSort) {
             case 'name':
-                beasts.sort((a, b) => {
+                sortedBeasts.sort((a, b) => {
                     const result = a.name.localeCompare(b.name);
                     return currentSortDirection === 'asc' ? result : -result;
                 });
                 break;
             case 'cr':
-                beasts.sort((a, b) => {
+                sortedBeasts.sort((a, b) => {
                     // Convert CR to numeric value for sorting
                     const crToValue = (cr) => {
                         if (cr === '0') return 0;
@@ -171,12 +167,30 @@ const UIManager = (function() {
                 break;
             case 'size':
                 const sizeOrder = { 'Tiny': 1, 'Small': 2, 'Medium': 3, 'Large': 4, 'Huge': 5, 'Gargantuan': 6 };
-                beasts.sort((a, b) => {
+                sortedBeasts.sort((a, b) => {
                     const result = sizeOrder[a.size] - sizeOrder[b.size];
                     return currentSortDirection === 'asc' ? result : -result;
                 });
                 break;
         }
+        
+        return sortedBeasts;
+    }
+    
+    /**
+     * Renders the list of beasts based on filters
+     * @param {Array} beasts - Array of beast objects to display
+     */
+    function renderBeastList(beasts) {
+        elements.beastList.innerHTML = '';
+        
+        if (beasts.length === 0) {
+            elements.beastList.innerHTML = '<div class="text-center p-4">No beasts found</div>';
+            return;
+        }
+        
+        // Sort beasts based on current sort option and direction
+        beasts = sortBeasts(beasts);
         
         beasts.forEach(beast => {
             const listItem = document.createElement('button');
@@ -834,7 +848,27 @@ const UIManager = (function() {
     function showOnlyWildshapeFavorites() {
         DataManager.getAllWildshapeFavorites()
             .then(beasts => {
-                renderBeastList(beasts);
+                // Apply current filters (if any)
+                if (currentFilters.name) {
+                    const nameLower = currentFilters.name.toLowerCase();
+                    beasts = beasts.filter(beast => 
+                        beast.name.toLowerCase().includes(nameLower)
+                    );
+                }
+                
+                // Apply CR filter if set
+                if (currentFilters.cr !== 'all') {
+                    beasts = beasts.filter(beast => matchesCRFilter(beast, currentFilters.cr));
+                }
+                
+                // Apply size filter if set
+                if (currentFilters.size !== 'all') {
+                    beasts = beasts.filter(beast => beast.size === currentFilters.size);
+                }
+                
+                // Get sorted beasts using the common sort function
+                const sortedBeasts = sortBeasts(beasts);
+                renderBeastList(sortedBeasts);
             })
             .catch(error => {
                 console.error('Error getting wildshape favorites:', error);
@@ -848,7 +882,27 @@ const UIManager = (function() {
     function showOnlyConjureFavorites() {
         DataManager.getAllConjureFavorites()
             .then(beasts => {
-                renderBeastList(beasts);
+                // Apply current filters (if any)
+                if (currentFilters.name) {
+                    const nameLower = currentFilters.name.toLowerCase();
+                    beasts = beasts.filter(beast => 
+                        beast.name.toLowerCase().includes(nameLower)
+                    );
+                }
+                
+                // Apply CR filter if set
+                if (currentFilters.cr !== 'all') {
+                    beasts = beasts.filter(beast => matchesCRFilter(beast, currentFilters.cr));
+                }
+                
+                // Apply size filter if set
+                if (currentFilters.size !== 'all') {
+                    beasts = beasts.filter(beast => beast.size === currentFilters.size);
+                }
+                
+                // Get sorted beasts using the common sort function
+                const sortedBeasts = sortBeasts(beasts);
+                renderBeastList(sortedBeasts);
             })
             .catch(error => {
                 console.error('Error getting conjure favorites:', error);
@@ -862,7 +916,27 @@ const UIManager = (function() {
     function showOnlyFavorites() {
         DataManager.getAllFavorites()
             .then(beasts => {
-                renderBeastList(beasts);
+                // Apply current filters (if any)
+                if (currentFilters.name) {
+                    const nameLower = currentFilters.name.toLowerCase();
+                    beasts = beasts.filter(beast => 
+                        beast.name.toLowerCase().includes(nameLower)
+                    );
+                }
+                
+                // Apply CR filter if set
+                if (currentFilters.cr !== 'all') {
+                    beasts = beasts.filter(beast => matchesCRFilter(beast, currentFilters.cr));
+                }
+                
+                // Apply size filter if set
+                if (currentFilters.size !== 'all') {
+                    beasts = beasts.filter(beast => beast.size === currentFilters.size);
+                }
+                
+                // Get sorted beasts using the common sort function
+                const sortedBeasts = sortBeasts(beasts);
+                renderBeastList(sortedBeasts);
             })
             .catch(error => {
                 console.error('Error getting favorites:', error);
@@ -2184,6 +2258,9 @@ const UIManager = (function() {
         toggleConjureFavorite,
         showOnlyWildshapeFavorites,
         showOnlyConjureFavorites,
+        
+        // Sorting functions
+        sortBeasts,
         
         // Filter setter/getter
         setFilter: (key, value) => {

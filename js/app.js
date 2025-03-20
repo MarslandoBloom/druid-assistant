@@ -52,6 +52,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Store available CR values
     let availableCRs = [];
     
+    // Track current view state
+    let currentView = 'all'; // 'all', 'wildshapeFavorites', or 'conjureFavorites'
+    
     /**
      * Initializes the application
      */
@@ -216,14 +219,30 @@ document.addEventListener('DOMContentLoaded', function() {
         // Beast search
         elements.beastSearch.addEventListener('input', function() {
             UIManager.setFilter('name', this.value);
-            UIManager.applyFilters();
+            
+            // Apply filter but maintain current view
+            if (currentView === 'wildshapeFavorites') {
+                UIManager.showOnlyWildshapeFavorites();
+            } else if (currentView === 'conjureFavorites') {
+                UIManager.showOnlyConjureFavorites();
+            } else {
+                UIManager.applyFilters();
+            }
         });
         
         // Clear search
         elements.clearSearch.addEventListener('click', function() {
             elements.beastSearch.value = '';
             UIManager.setFilter('name', '');
-            UIManager.applyFilters();
+            
+            // Apply filter but maintain current view
+            if (currentView === 'wildshapeFavorites') {
+                UIManager.showOnlyWildshapeFavorites();
+            } else if (currentView === 'conjureFavorites') {
+                UIManager.showOnlyConjureFavorites();
+            } else {
+                UIManager.applyFilters();
+            }
         });
         
         // Enable CR Range filter
@@ -235,7 +254,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!this.checked) {
                 // If unchecked, reset to "all" CRs
                 UIManager.setFilter('cr', 'all');
-                UIManager.applyFilters();
+                
+                // Apply filter but maintain current view
+                if (currentView === 'wildshapeFavorites') {
+                    UIManager.showOnlyWildshapeFavorites();
+                } else if (currentView === 'conjureFavorites') {
+                    UIManager.showOnlyConjureFavorites();
+                } else {
+                    UIManager.applyFilters();
+                }
             }
         });
         
@@ -259,7 +286,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     UIManager.setFilter('cr', `${minCR}-${maxCR}`);
                 }
                 
-                UIManager.applyFilters();
+                // Apply filter but maintain current view
+                if (currentView === 'wildshapeFavorites') {
+                    UIManager.showOnlyWildshapeFavorites();
+                } else if (currentView === 'conjureFavorites') {
+                    UIManager.showOnlyConjureFavorites();
+                } else {
+                    UIManager.applyFilters();
+                }
             }
         });
         
@@ -279,7 +313,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Apply size filter
                 const size = this.dataset.size;
                 UIManager.setFilter('size', size);
-                UIManager.applyFilters();
+                
+                // Apply filter but maintain current view
+                if (currentView === 'wildshapeFavorites') {
+                    UIManager.showOnlyWildshapeFavorites();
+                } else if (currentView === 'conjureFavorites') {
+                    UIManager.showOnlyConjureFavorites();
+                } else {
+                    UIManager.applyFilters();
+                }
             });
         });
         
@@ -293,7 +335,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 UIManager.setSort(sortType);
                 UIManager.setSortDirection(sortDirection);
-                UIManager.applyFilters();
+                
+                // Apply sort but maintain current view
+                if (currentView === 'wildshapeFavorites') {
+                    UIManager.showOnlyWildshapeFavorites();
+                } else if (currentView === 'conjureFavorites') {
+                    UIManager.showOnlyConjureFavorites();
+                } else {
+                    UIManager.applyFilters();
+                }
                 
                 // Update sort dropdown text - make compact for UI
                 let sortText = this.textContent;
@@ -309,6 +359,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Show wildshape favorites
         elements.showWildshapeFavorites.addEventListener('click', function() {
+            // Set the current view state
+            currentView = 'wildshapeFavorites';
             UIManager.showOnlyWildshapeFavorites();
             
             // Update button appearances
@@ -325,6 +377,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Show conjure favorites
         elements.showConjureFavorites.addEventListener('click', function() {
+            // Set the current view state
+            currentView = 'conjureFavorites';
             UIManager.showOnlyConjureFavorites();
             
             // Update button appearances
@@ -341,6 +395,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Back to list button
         document.getElementById('backToListBtn').addEventListener('click', function() {
+            // Reset the view state
+            currentView = 'all';
+            
             // Show all beasts but retain current filters
             UIManager.applyFilters();
             
@@ -356,6 +413,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reset filters
         elements.resetFilters.addEventListener('click', function() {
+            // Reset the view state
+            currentView = 'all';
+            
             UIManager.resetFilters();
             
             // Reset all UI filter indicators
