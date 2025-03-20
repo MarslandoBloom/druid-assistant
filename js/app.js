@@ -67,8 +67,10 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(beasts => {
                 if (beasts.length === 0) {
-                    // No beasts found, show upload prompt
-                    showUploadPrompt();
+                    // No beasts found, but don't automatically show upload prompt
+                    console.log('No beasts found in database. User can upload data from the Manage Data button.');
+                    // Still need to render an empty beast list with helpful message
+                    document.getElementById('beastList').innerHTML = '<div class="text-center p-4">No beasts found. Click "Manage Data" at the bottom of the page to upload beast data.</div>';
                 } else {
                     // Render the beast list
                     UIManager.renderBeastList(beasts);
@@ -139,14 +141,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = new bootstrap.Modal(document.getElementById('dataModal'));
         modal.show();
         
-        const alertElement = document.createElement('div');
-        alertElement.className = 'alert alert-info';
-        alertElement.innerHTML = `
-            <strong>Welcome!</strong> No beast data found. Please upload a markdown file with beast data to get started.
-        `;
-        
-        const modalBody = document.querySelector('#dataModal .modal-body');
-        modalBody.insertBefore(alertElement, modalBody.firstChild);
+        // Check if we need to show the alert (only if no beasts found)
+        DataManager.getAllBeasts().then(beasts => {
+            if (beasts.length === 0) {
+                // Only add the info alert if it doesn't already exist
+                if (!document.querySelector('#dataModal .alert-info')) {
+                    const alertElement = document.createElement('div');
+                    alertElement.className = 'alert alert-info';
+                    alertElement.innerHTML = `
+                        <strong>Welcome!</strong> No beast data found. Please upload a markdown file with beast data to get started. Note that the application will include base beast data by default in the full version.
+                    `;
+                    
+                    const modalBody = document.querySelector('#dataModal .modal-body');
+                    modalBody.insertBefore(alertElement, modalBody.firstChild);
+                }
+            }
+        });
     }
     
     /**
