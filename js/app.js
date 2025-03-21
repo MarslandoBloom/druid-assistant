@@ -527,6 +527,11 @@ document.addEventListener('DOMContentLoaded', function() {
             UIManager.resetRolls();
         });
         
+        // Note button in conjure animals tab
+        document.getElementById('noteButton').addEventListener('click', function() {
+            alert("Note that the following attacks (or outcomes of attacks) will require additional manual input: charge, trampling charge, swallow, pounce, additional poison damage, being knocked prone, web, constrict. Use the Dice Roller tab for these rolls");
+        });
+        
         // Wildshape Favorite button
         elements.wildshapeFavoriteButton.addEventListener('click', function() {
             const currentBeast = UIManager.getCurrentBeast();

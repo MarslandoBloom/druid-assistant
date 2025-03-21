@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Druid's Wildshape Assistant</title>
+    <title>The Druid Assistant</title>
     <!-- Bootstrap CSS -->
     <style>@charset "UTF-8";/*!
  * Bootstrap  v5.3.0-alpha1 (https://getbootstrap.com/)
@@ -610,7 +610,7 @@ body {
 <body>
     <div class="container-fluid p-0">
         <header class="bg-success text-white p-3">
-            <h1 class="text-center">The Druid's Wildshape Assistant</h1>
+            <h1 class="text-center">The Druid Assistant</h1>
         </header>
 
         <!-- Main Navigation Tabs -->
@@ -1016,8 +1016,9 @@ body {
                                 <!-- Statblock (responsive layout) -->
                                 <div class="col-md-4 col-lg-3" id="conjure-statblock-container">
                                     <div class="card h-100">
-                                        <div class="card-header bg-success text-white">
+                                        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                                             <h5 class="mb-0">Statblock</h5>
+                                            <button id="noteButton" class="btn btn-sm btn-light">Note</button>
                                         </div>
                                         <div class="card-body overflow-auto" id="conjure-statblock">
                                             <div class="text-center p-2">
@@ -1085,7 +1086,7 @@ body {
             <div class="container">
                 <div class="row">
                     <div class="col-md-6 text-md-start">
-                        <p class="mb-0">The Druid's Assistant: Facilitating the biting off of faces since 2025</p>
+                        <p class="mb-0">The Druid Assistant: Facilitating the biting off of faces since 2025</p>
                     </div>
                     <div class="col-md-6 text-md-end">
                         <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#dataModal">
@@ -4484,6 +4485,7 @@ const DataManager = (function() {
                 'Giant Poisonous Snake',
                 'Hadrosaurus',
                 'Ox',
+                'Suturefly',
                 'Velociraptor',
                 'Wolf'
             ];
@@ -7549,6 +7551,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset Rolls button
         document.getElementById('reset-rolls-btn').addEventListener('click', function() {
             UIManager.resetRolls();
+        });
+        
+        // Note button in conjure animals tab
+        document.getElementById('noteButton').addEventListener('click', function() {
+            alert("Note that the following attacks (or outcomes of attacks) will require additional manual input: charge, trampling charge, swallow, pounce, additional poison damage, being knocked prone, web, constrict. Use the Dice Roller tab for these rolls");
         });
         
         // Wildshape Favorite button

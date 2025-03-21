@@ -1356,6 +1356,7 @@ const DataManager = (function() {
                 'Giant Poisonous Snake',
                 'Hadrosaurus',
                 'Ox',
+                'Suturefly',
                 'Velociraptor',
                 'Wolf'
             ];

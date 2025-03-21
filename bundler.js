@@ -7,7 +7,7 @@ const CONFIG = {
   // Main HTML file (relative to project directory)
   entryHtml: 'index.html',
   // Output file name
-  outputFile: 'druid-assistant-bundle.html',
+  outputFile: 'The Druid Assistant.html',
   // Relative path to beast data file (relative to bundler.js location)
   beastDataFilePath: './All beasts CR6 and below, druid seen, forest, grassland, hills.md',
   // Project base directory for resolving relative paths
