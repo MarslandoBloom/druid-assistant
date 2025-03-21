@@ -497,6 +497,11 @@ document.addEventListener('DOMContentLoaded', function() {
             UIManager.addEnemyToken();
         });
         
+        // Release enemies button
+        document.getElementById('release-enemies-btn').addEventListener('click', function() {
+            UIManager.releaseEnemies();
+        });
+        
         // Group attack button
         elements.groupAttackBtn.addEventListener('click', function() {
             UIManager.handleGroupAttackRoll();

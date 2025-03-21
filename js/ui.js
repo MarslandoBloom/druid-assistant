@@ -1602,6 +1602,7 @@ const UIManager = (function() {
         let dragGroup = [];
         let dragOffsets = [];
         
+        // Mouse events for desktop
         element.addEventListener('mousedown', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1628,6 +1629,35 @@ const UIManager = (function() {
             document.addEventListener('mouseup', handleMouseUp);
         });
         
+        // Touch events for mobile
+        element.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const touch = e.touches[0];
+            isDragging = true;
+            startX = touch.clientX;
+            startY = touch.clientY;
+            originalX = element.offsetLeft;
+            originalY = element.offsetTop;
+            
+            // Prepare for group dragging if applicable
+            if (element.classList.contains('selected')) {
+                dragGroup = Array.from(document.querySelectorAll('.battlefield-token.selected'));
+                dragOffsets = dragGroup.map(el => ({
+                    x: el.offsetLeft,
+                    y: el.offsetTop
+                }));
+            } else {
+                dragGroup = [element];
+                dragOffsets = [{ x: originalX, y: originalY }];
+            }
+            
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd);
+            document.addEventListener('touchcancel', handleTouchEnd);
+        }, { passive: false });
+        
         function handleMouseMove(e) {
             if (!isDragging) return;
             
@@ -1641,10 +1671,33 @@ const UIManager = (function() {
             });
         }
         
+        function handleTouchMove(e) {
+            if (!isDragging) return;
+            
+            e.preventDefault(); // Prevent scrolling during drag
+            const touch = e.touches[0];
+            
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+            
+            // Move each token in the drag group
+            dragGroup.forEach((token, index) => {
+                token.style.left = (dragOffsets[index].x + dx) + 'px';
+                token.style.top = (dragOffsets[index].y + dy) + 'px';
+            });
+        }
+        
         function handleMouseUp() {
             isDragging = false;
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
+        }
+        
+        function handleTouchEnd() {
+            isDragging = false;
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+            document.removeEventListener('touchcancel', handleTouchEnd);
         }
     }
     
@@ -1684,6 +1737,25 @@ const UIManager = (function() {
             enemyId: enemyId,
             type: 'enemy'
         });
+    }
+    
+    /**
+     * Releases all enemy tokens from the battlefield
+     */
+    function releaseEnemies() {
+        const battlefield = document.getElementById('battlefield');
+        if (!battlefield) return;
+        
+        // Get all enemy tokens
+        const enemyTokens = battlefield.querySelectorAll('.battlefield-token.enemy');
+        
+        // Remove each token from the DOM
+        enemyTokens.forEach(token => {
+            battlefield.removeChild(token);
+        });
+        
+        // Update battlefieldTokens array to remove enemies
+        battlefieldTokens = battlefieldTokens.filter(token => token.type !== 'enemy');
     }
     
     /**
@@ -2244,6 +2316,7 @@ const UIManager = (function() {
         // Conjure Animals tab functions
         initConjureAnimalsTab,
         addEnemyToken,
+        releaseEnemies,
         handleGroupAttackRoll,
         handleGroupDamageRoll,
         selectAllAnimals,

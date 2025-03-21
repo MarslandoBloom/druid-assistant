@@ -450,6 +450,13 @@ body {
     cursor: move;
     user-select: none;
     z-index: 10;
+    touch-action: none; /* Prevents browser default touch actions while dragging */
+}
+
+/* Style while dragging for better visual feedback */
+.battlefield-token:active {
+    opacity: 0.8;
+    transform: scale(1.05);
 }
 
 .battlefield-token.animal {
