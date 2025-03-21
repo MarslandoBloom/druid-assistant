@@ -305,22 +305,6 @@ async function bundleApp() {
       '    }\n' +
       '  }\n' +
       '  \n' +
-      '  // Manual data import button\n' +
-      '  function createImportButton() {\n' +
-      '    const button = document.createElement("button");\n' +
-      '    button.id = "manual-import";\n' +
-      '    button.className = "btn btn-primary";\n' +
-      '    button.style.position = "fixed";\n' +
-      '    button.style.top = "70px";\n' +
-      '    button.style.right = "20px";\n' +
-      '    button.style.zIndex = "9999";\n' +
-      '    button.innerHTML = "Import Beast Data";\n' +
-      '    button.addEventListener("click", function() {\n' +
-      '      importBeastData();\n' +
-      '    });\n' +
-      '    document.body.appendChild(button);\n' +
-      '  }\n' +
-      '  \n' +
       '  // Import beast data function\n' +
       '  async function importBeastData() {\n' +
       '    debugLog("Manual import started...");\n' +
@@ -376,7 +360,6 @@ async function bundleApp() {
       '  document.addEventListener("DOMContentLoaded", async function() {\n' +
       '    // Create debug console\n' +
       '    createDebugConsole();\n' +
-      '    createImportButton();\n' +
       '    \n' +
       '    debugLog("Bundle loaded - preparing to initialize data...");\n' +
       '    \n' +
