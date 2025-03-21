@@ -59,13 +59,16 @@ document.addEventListener('DOMContentLoaded', function() {
      * Initializes the application
      */
     function init() {
+        console.log('Initializing Druid\'s Assistant application...');
         // Initialize database
         DataManager.initDatabase()
             .then(() => {
+                console.log('Database initialized, checking for beasts...');
                 // Check if we have beasts in the database
                 return DataManager.getAllBeasts();
             })
             .then(beasts => {
+                console.log(`Found ${beasts.length} beasts in database.`);
                 if (beasts.length === 0) {
                     // No beasts found, but don't automatically show upload prompt
                     console.log('No beasts found in database. User can upload data from the Manage Data button.');

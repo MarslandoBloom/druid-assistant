@@ -1,133 +1,79 @@
-# The Druid's Wildshape & Conjure Animals Assistant
+# The Druid's Wildshape and Conjure Animals Assistant
 
-A web-based assistant for D&D 5e Druids to manage wildshape transformations and conjure animals spell usage.
-
-![Druid's Assistant](images/druid-assistant-screenshot.png)
+A web-based assistant for D&D 5e Druid players to manage their Wildshape transformations and Conjure Animals spell.
 
 ## Features
 
-- **Comprehensive Beast Database**: Access details for beasts CR 0-6 from forest, grassland, and hill environments
-- **Advanced Filtering**: Filter beasts by CR, size, and name
-- **Detailed Statblocks**: View D&D 5e style statblocks with all creature stats and abilities
-- **Wildshape Management**: Quick reference for your transformed shape
-- **Conjure Animals Helper**: 
-  - Automatically calculates the correct number of creatures based on CR
-  - Tracks health for each summoned creature
-  - Simulates attack rolls with advantage/disadvantage options
-  - Calculates hit probability and damage output
-  - Independent attack selection for each summoned creature
-  - Group attack and damage rolls respect individual attack selections
-  - Separate "Release Summons" and "Reset Rolls" functionality
-- **Favorites System**: Save your most-used beasts for quick access
-- **Data Management**: Import custom beast data from markdown files
-- **Offline Capability**: Works without internet connection after initial load
-- **Mobile Friendly**: Responsive design works on phones and tablets
+- **Statblock Viewer**: Browse and search beast statblocks
+- **Wildshape Tracker**: Track your current wildshape form's health
+- **Conjure Animals**: Manage summoned creatures and their actions
+- **Dice Roller**: Integrated dice roller for all your rolls
+- **Offline Support**: Works without internet connection after initial load
+- **Mobile Friendly**: Optimized for both desktop and mobile devices
 
-## Installation
+## Getting Started
 
-### Method 1: Direct Access (Recommended)
-Simply visit [The Druid's Assistant](https://your-url-here.com) in your web browser.
+### Single-File Bundle (Recommended)
 
-### Method 2: Local Installation
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/druids-assistant.git
-   ```
-2. Navigate to the project directory:
-   ```
-   cd druids-assistant
-   ```
-3. Open `index.html` in your web browser.
+For the easiest experience, download the single HTML file bundle:
+
+1. Download `druid-assistant-bundle.html`
+2. Open it in any modern browser (Chrome, Firefox, Edge recommended)
+3. On mobile devices, you can "Add to Home Screen" for app-like experience
+
+### Standard Installation
+
+If you prefer to run the full application:
+
+1. Clone this repository
+2. Open `index.html` in your browser
+3. Use the "Manage Data" button to upload beast data if needed
 
 ## Usage
 
-### Beast Reference
-1. **Browse Beasts**: Scroll through the list or use search/filtering.
-2. **View Details**: Click any beast to display its complete statblock.
-3. **Mark Favorites**: Click the "Favorite" button to save beasts for quick access.
+### Statblock Tab
 
-### Wildshape
-1. Select a beast from the Statblock tab.
-2. Click "Wildshape" to add it to your Wildshape tab.
-3. Reference the statblock during gameplay.
-4. Use the "Reset" button to clear your selection.
+- Browse beasts by name, CR, or size
+- Click on a beast to view its full statblock
+- Add beasts to favorites for quick access
+- Use the Wildshape or Conjure Animals buttons to switch views
 
-### Conjure Animals
-1. Select a beast from the Statblock tab.
-2. Click "Conjure Animals" to summon the appropriate number based on CR.
-3. Use health trackers to manage damage to your summoned creatures.
-4. Configure attack options for each summoned creature individually.
-5. Select specific creatures using the selection system.
-6. Use "Group Attack" to roll attacks for all selected creatures at once.
-7. Use "Group Damage" to calculate total damage for all successful hits.
-8. Use "Reset Rolls" to clear attack and damage displays without removing creatures.
-9. Use "Release Summons" when you're done with the current summoned creatures.
+### Wildshape Tab
 
-### Data Management
-1. Click "Manage Data" in the footer.
-2. Upload beast data in markdown format (compatible with output from 2014.5e.tools).
-3. Reset data if needed (warning: this will clear all beasts and favorites).
+- View your current wildshape form
+- Track HP with the health bar
+- Apply damage or healing as needed
 
-## Beast Data Format
+### Conjure Animals Tab
 
-The application accepts markdown files in the following format:
+- Summon appropriate number of creatures based on CR
+- Track HP for each summoned creature
+- Roll group attacks with advantage/disadvantage options
+- Use the battlefield visualization for positioning
 
-```markdown
-___
->## Beast Name
->*Size Type, alignment*
->___
->- **Armor Class** 14 (natural armor)
->- **Hit Points** 27 (5d8 + 5)
->- **Speed** 40 ft.
->___
->|STR|DEX|CON|INT|WIS|CHA|
->|:---:|:---:|:---:|:---:|:---:|:---:|
->|15 (+2)|14 (+2)|12 (+1)|3 (-4)|12 (+1)|7 (-2)|
->___
->- **Skills** Perception +3, Stealth +4
->- **Senses** passive Perception 13
->- **Languages** —
->- **Challenge** 1 (200 XP)
->___
->***Special Ability.*** Description of special ability.
->
->### Actions
->***Attack.*** *Melee Weapon Attack:* +4 to hit, reach 5 ft., one target. *Hit:* 5 (1d6 + 2) piercing damage.
-```
+### Dice Roller Tab
 
-## Technologies Used
+- Roll different dice combinations
+- Apply modifiers and roll with advantage/disadvantage
+- View detailed results of all rolls
 
-- HTML5
-- CSS3 with responsive design
-- JavaScript (ES6+)
-- Bootstrap 5 for UI components
-- IndexedDB for client-side storage
-- Progressive Web App (PWA) capabilities
+## Data Management
 
-## Project Structure
+- The app comes pre-loaded with forest, grassland, and hills beasts up to CR 6
+- Upload additional beast data in markdown format using the "Manage Data" button
+- Reset all data if needed
 
-```
-druids-assistant/
-├── index.html                # Main HTML file
-├── css/
-│   └── style.css             # Custom styles
-├── js/
-│   ├── app.js                # Main application logic and event handling
-│   ├── data.js               # Data management and persistence
-│   └── ui.js                 # UI rendering and state management
-├── images/                   # Icons and images
-└── manifest.json             # PWA manifest
-```
+## Packaging
 
-## Recent Updates
+See `BUNDLING_INSTRUCTIONS.md` for details on creating a single-file package for offline use and distribution.
 
-### March 2025
-- Added independent attack selection for each summoned creature
-- Improved group attack and damage calculations to use individual attack selections
-- Split reset functionality into "Release Summons" and "Reset Rolls" buttons
-- Enhanced battlefield visualization with improved creature selection
-- Optimized UI layout for better usability on various screen sizes
+## Technical Details
+
+Built using:
+- HTML5, CSS3, JavaScript
+- Bootstrap 5 for responsive design
+- IndexedDB for local data storage
+- Progressive Web App (PWA) support
 
 ## License
 
@@ -135,10 +81,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- The D&D 5e SRD for reference statblocks and rules
-- 2014.5e.tools for markdown formatting inspiration
-- All the druids who have ever turned into bears and bitten faces off
-
----
-
-*The Druid's Assistant: Facilitating the biting off of faces since 2025*
+- Built for Druids who want to manage shape-shifting and animal summoning with ease
+- Inspired by the versatility and complexity of the Druid class in D&D 5e

@@ -504,5 +504,18 @@
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
     <script src="js/dice-roller.js"></script>
+    <script>
+        // Register service worker for PWA support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('./sw.js');
+                    console.log('ServiceWorker registration successful with scope:', registration.scope);
+                } catch (error) {
+                    console.error('ServiceWorker registration failed:', error);
+                }
+            });
+        }
+    </script>
 </body>
 </html>

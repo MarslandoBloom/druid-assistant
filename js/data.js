@@ -5,6 +5,35 @@
  */
 
 const DataManager = (function() {
+    /**
+     * Initializes the database with beast data imported from bundler
+     * @param {Array} beastData - Array of beast objects from markdown parser
+     * @returns {Promise} Resolves when database is initialized with data
+     */
+    async function initializeDatabase(beastData) {
+        console.log("Initializing database with beast data from bundler...");
+        try {
+            // First initialize the database
+            const db = await initDatabase();
+            
+            // Check if we already have beasts
+            const existingBeasts = await getAllBeasts();
+            
+            if (existingBeasts.length === 0) {
+                console.log(`Importing ${beastData.length} beasts from bundled data...`);
+                // No beasts found, import the data
+                await saveBeasts(beastData);
+                console.log("Beast data imported successfully!");
+            } else {
+                console.log(`Database already contains ${existingBeasts.length} beasts, skipping import.`);
+            }
+            
+            return beastData.length;
+        } catch (error) {
+            console.error('Error initializing database with beast data:', error);
+            throw error;
+        }
+    }
     // Database configuration
     const DB_NAME = 'DruidsAssistantDB';
     const DB_VERSION = 2;
@@ -79,6 +108,18 @@ const DataManager = (function() {
      * @returns {Array} Array of beast objects
      */
     function parseMarkdown(markdown) {
+        console.log("Starting markdown parsing...");
+        
+        // Validate input
+        if (!markdown || typeof markdown !== 'string') {
+            console.error("Invalid markdown input:", markdown);
+            return [];
+        }
+        
+        if (markdown.length < 100) {
+            console.warn("Markdown seems too short:", markdown);
+        }
+        
         const beasts = [];
         let currentBeast = null;
         let inStatBlock = false;
@@ -1189,10 +1230,13 @@ const DataManager = (function() {
     function loadBeastData(markdownText) {
         return new Promise((resolve, reject) => {
             try {
-                console.log('Starting beast data parsing...');
+                console.log('Starting beast data parsing from bundled markdown...');
+                console.log(`Markdown text length: ${markdownText.length} characters`);
+                // Parse the markdown text and extract beasts
                 const beasts = parseMarkdown(markdownText);
                 
                 if (beasts.length === 0) {
+                    console.error('No beasts found in markdown');
                     reject('No beasts found in markdown');
                     return;
                 }
@@ -1481,6 +1525,8 @@ const DataManager = (function() {
         ensureDefaultConjureFavorites,
         // Other methods
         clearAllData,
-        loadBeastData
+        loadBeastData,
+        // Bundler-specific methods
+        initializeDatabase
     };
 })();
