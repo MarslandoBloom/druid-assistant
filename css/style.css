@@ -376,25 +376,30 @@ body {
     border-bottom: none;
 }
 
+/* Default styling for dice values - not bold */
 .dice-value {
-    font-weight: bold;
+    font-weight: normal;
 }
 
-.dice-value.advantage {
+/* Remove bold from advantage/disadvantage */
+#d20-results .dice-value.advantage {
     color: var(--druid-green);
+    font-weight: normal;
 }
 
-.dice-value.disadvantage {
+#d20-results .dice-value.disadvantage {
     color: #dc3545; /* Bootstrap danger color */
+    font-weight: normal;
 }
 
-.dice-value.critical-success {
+/* Only natural 20s/1s on d20 get special styling */
+#d20-results .dice-value.critical-success {
     color: var(--druid-green);
     font-weight: bold;
     text-shadow: 0 0 2px rgba(25, 135, 84, 0.3);
 }
 
-.dice-value.critical-failure {
+#d20-results .dice-value.critical-failure {
     color: #dc3545; /* Bootstrap danger color */
     font-weight: bold;
     text-shadow: 0 0 2px rgba(220, 53, 69, 0.3);
@@ -406,7 +411,7 @@ body {
 
 .dice-total {
     font-weight: bold;
-    text-decoration: underline;
+    /* Remove underline */
 }
 
 .dice-grand-total {

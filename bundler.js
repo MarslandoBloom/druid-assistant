@@ -265,18 +265,38 @@ async function bundleApp() {
       '    debugConsole.style.fontFamily = "monospace";\n' +
       '    debugConsole.style.fontSize = "12px";\n' +
       '    debugConsole.style.zIndex = "9999";\n' +
-      '    debugConsole.innerHTML = "<div><strong>Debug Console</strong> <button id=\'toggle-debug\' style=\'float:right\'>Hide</button><button id=\'clear-debug\' style=\'float:right; margin-right:10px\'>Clear</button></div><div id=\'debug-log\'></div>";\n' +
+      '    debugConsole.style.display = "none"; // Hide console by default\n' +
+      '    debugConsole.innerHTML = "<div><strong>Debug Console</strong> <button id=\'hide-debug\' style=\'float:right\'>Hide</button><button id=\'clear-debug\' style=\'float:right; margin-right:10px\'>Clear</button></div><div id=\'debug-log\'></div>";\n' +
       '    document.body.appendChild(debugConsole);\n' +
       '    \n' +
-      '    document.getElementById("toggle-debug").addEventListener("click", function() {\n' +
-      '      const log = document.getElementById("debug-log");\n' +
-      '      if (log.style.display === "none") {\n' +
-      '        log.style.display = "block";\n' +
-      '        this.textContent = "Hide";\n' +
-      '      } else {\n' +
-      '        log.style.display = "none";\n' +
-      '        this.textContent = "Show";\n' +
+      '    // Add the debug console button next to the Manage Data button in the footer\n' +
+      '    setTimeout(() => {\n' +
+      '      const footerButtonsContainer = document.querySelector("footer .col-md-6.text-md-end");\n' +
+      '      if (footerButtonsContainer) {\n' +
+      '        const toggleButton = document.createElement("button");\n' +
+      '        toggleButton.id = "show-debug-console";\n' +
+      '        toggleButton.textContent = "Debug Console";\n' +
+      '        toggleButton.className = "btn btn-light btn-sm";\n' +
+      '        toggleButton.style.marginRight = "10px";\n' +
+      '        \n' +
+      '        // Insert the button before the Manage Data button\n' +
+      '        const manageDataButton = footerButtonsContainer.querySelector(".btn");\n' +
+      '        if (manageDataButton) {\n' +
+      '          footerButtonsContainer.insertBefore(toggleButton, manageDataButton);\n' +
+      '        } else {\n' +
+      '          footerButtonsContainer.appendChild(toggleButton);\n' +
+      '        }\n' +
+      '        \n' +
+      '        // Add event listener\n' +
+      '        toggleButton.addEventListener("click", function() {\n' +
+      '          debugConsole.style.display = "block";\n' +
+      '        });\n' +
       '      }\n' +
+      '    }, 1000); // Wait for DOM to be fully loaded\n' +
+      '    \n' +
+      '    // Add event listener to hide button\n' +
+      '    document.getElementById("hide-debug").addEventListener("click", function() {\n' +
+      '      debugConsole.style.display = "none";\n' +
       '    });\n' +
       '    \n' +
       '    document.getElementById("clear-debug").addEventListener("click", function() {\n' +

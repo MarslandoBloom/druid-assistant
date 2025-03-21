@@ -133,15 +133,16 @@ function displayDiceResults(container, results, rollType, modifier, shouldSum) {
             } else if (rollType !== 'normal') {
                 diceValueClass = rollType;
             }
-        } else if (rollType !== 'normal') {
-            diceValueClass = rollType;
         }
+        // Remove rollType class for non-d20 dice
+        // No special styling for non-d20 dice
         
         if (rollType === 'advantage' || rollType === 'disadvantage') {
             // Determine classes for the individual rolls in advantage/disadvantage
             let rollAClass = '';
             let rollBClass = '';
             
+            // Only apply critical success/failure styling to d20 rolls
             if (isDTwenty) {
                 if (result.rollA === 20) rollAClass = 'critical-success';
                 else if (result.rollA === 1) rollAClass = 'critical-failure';
@@ -149,17 +150,16 @@ function displayDiceResults(container, results, rollType, modifier, shouldSum) {
                 if (result.rollB === 20) rollBClass = 'critical-success';
                 else if (result.rollB === 1) rollBClass = 'critical-failure';
             }
+            // Non-d20 dice get no special styling
             
             html += `<div class="dice-result">
-                Roll ${index + 1}: 
                 <span class="dice-value ${diceValueClass}">${result.roll}</span> 
-                (<span class="${rollAClass}">${result.rollA}</span>, <span class="${rollBClass}">${result.rollB}</span>) + 
+                [<span class="${rollAClass}">${result.rollA}</span>, <span class="${rollBClass}">${result.rollB}</span>] + 
                 <span class="dice-modifier">${modifier}</span> = 
                 <span class="dice-total">${result.total}</span>
             </div>`;
         } else {
             html += `<div class="dice-result">
-                Roll ${index + 1}: 
                 <span class="dice-value ${diceValueClass}">${result.roll}</span> + 
                 <span class="dice-modifier">${modifier}</span> = 
                 <span class="dice-total">${result.total}</span>
