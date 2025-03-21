@@ -805,8 +805,8 @@ const UIManager = (function() {
      * @param {string} message - Error message to display
      */
     function showError(message) {
-        // For now, just use an alert
-        alert(message);
+        // Use the formatted alert instead of native alert
+        showFormattedAlert('Error', message);
     }
     
     /**
@@ -1866,7 +1866,10 @@ const UIManager = (function() {
         if (amount === null) return;
         
         const numAmount = parseInt(amount);
-        if (isNaN(numAmount) || numAmount <= 0) return;
+        if (isNaN(numAmount) || numAmount <= 0) {
+            showFormattedAlert('Invalid input', 'Please enter a valid positive number');
+            return;
+        }
         
         updateAnimalHP(animalId, direction * numAmount, beast);
     }
@@ -2100,7 +2103,7 @@ const UIManager = (function() {
      */
     function handleGroupAttackRoll() {
         if (!currentSummonedBeast || selectedAnimals.length === 0) {
-            alert('Please select at least one animal first');
+            showFormattedAlert('No selection', 'Please select at least one animal first');
             return;
         }
         
@@ -2132,7 +2135,7 @@ const UIManager = (function() {
      */
     function handleGroupDamageRoll() {
         if (!currentSummonedBeast || selectedAnimals.length === 0) {
-            alert('Please select at least one animal first');
+            showFormattedAlert('No selection', 'Please select at least one animal first');
             return;
         }
                 

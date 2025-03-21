@@ -3,6 +3,120 @@
  * Handles initialization, event listeners, and tab switching
  */
 
+/**
+ * Shows a formatted alert modal instead of using the native alert() function
+ * @param {string} title - The title of the alert
+ * @param {string} message - The message to display
+ */
+function showFormattedAlert(title, message) {
+    // Create modal elements
+    const modalBackdrop = document.createElement('div');
+    modalBackdrop.className = 'modal-backdrop fade show';
+    document.body.appendChild(modalBackdrop);
+    
+    const modalHtml = `
+    <div class="modal fade show" tabindex="-1" style="display: block;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">${title}</h5>
+                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>${message.replace(/\n/g, '<br>')}</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer);
+    
+    // Add event listener to close button
+    const closeButton = modalContainer.querySelector('.btn-close');
+    closeButton.addEventListener('click', () => {
+        document.body.removeChild(modalContainer);
+        document.body.removeChild(modalBackdrop);
+    });
+    
+    // Add event listener to OK button
+    const okButton = modalContainer.querySelector('.btn');
+    okButton.addEventListener('click', () => {
+        document.body.removeChild(modalContainer);
+        document.body.removeChild(modalBackdrop);
+    });
+}
+
+/**
+ * Shows a formatted confirmation modal instead of using the native confirm() function
+ * @param {string} title - The title of the confirmation
+ * @param {string} message - The message to display
+ * @param {Function} onConfirm - Callback function when user confirms
+ * @param {Function} onCancel - Callback function when user cancels
+ */
+function showFormattedConfirm(title, message, onConfirm, onCancel) {
+    // Create modal elements
+    const modalBackdrop = document.createElement('div');
+    modalBackdrop.className = 'modal-backdrop fade show';
+    document.body.appendChild(modalBackdrop);
+    
+    const modalHtml = `
+    <div class="modal fade show" tabindex="-1" style="display: block;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">${title}</h5>
+                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>${message.replace(/\n/g, '<br>')}</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmBtn">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer);
+    
+    // Function to close the modal
+    const closeModal = () => {
+        document.body.removeChild(modalContainer);
+        document.body.removeChild(modalBackdrop);
+    };
+    
+    // Add event listener to close button
+    const closeButton = modalContainer.querySelector('.btn-close');
+    closeButton.addEventListener('click', () => {
+        closeModal();
+        if (onCancel) onCancel();
+    });
+    
+    // Add event listener to Cancel button
+    const cancelButton = modalContainer.querySelector('#cancelBtn');
+    cancelButton.addEventListener('click', () => {
+        closeModal();
+        if (onCancel) onCancel();
+    });
+    
+    // Add event listener to Confirm button
+    const confirmButton = modalContainer.querySelector('#confirmBtn');
+    confirmButton.addEventListener('click', () => {
+        closeModal();
+        if (onConfirm) onConfirm();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
 
     // DOM elements
@@ -85,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Initialization error:', error);
-                alert('Error initializing application. Please check console for details.');
+                showFormattedAlert('Error', 'Error initializing application. Please check console for details.');
             });
         
         // Set up event listeners
@@ -192,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const damageAmount = parseInt(damageInput.value);
             
             if (isNaN(damageAmount) || damageAmount <= 0) {
-                alert('Please enter a valid positive number');
+                showFormattedAlert('Invalid input', 'Please enter a valid positive number');
                 return;
             }
             
@@ -208,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const healAmount = parseInt(healInput.value);
             
             if (isNaN(healAmount) || healAmount <= 0) {
-                alert('Please enter a valid positive number');
+                showFormattedAlert('Invalid input', 'Please enter a valid positive number');
                 return;
             }
             
@@ -529,7 +643,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Note button in conjure animals tab
         document.getElementById('noteButton').addEventListener('click', function() {
-            alert("Note that the following attacks (or outcomes of attacks) will require additional manual input: charge, trampling charge, swallow, pounce, additional poison damage, being knocked prone, web, constrict. Use the Dice Roller tab for these rolls");
+            const modalTitle = 'Not all attacks are fully supported';
+            const modalContent = "Note that the following attacks (or outcomes of attacks) will require additional manual input:\n\nCharge\nTrampling charge\nSwallow\nPounce\nAdditional poison damage\nBeing knocked prone\nWeb\nConstrict\n\nUse the Dice Roller tab to complete these actions";
+            showFormattedAlert(modalTitle, modalContent);
         });
         
         // Wildshape Favorite button
@@ -552,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.uploadDataBtn.addEventListener('click', function() {
             const fileInput = elements.mdFileInput;
             if (fileInput.files.length === 0) {
-                alert('Please select a file to upload');
+                showFormattedAlert('Missing file', 'Please select a file to upload');
                 return;
             }
             
@@ -565,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Process the markdown file
                 DataManager.loadBeastData(content)
                     .then(count => {
-                        alert(`Successfully loaded ${count} beasts!`);
+                        showFormattedAlert('Success', `Successfully loaded ${count} beasts!`);
                         
                         // Reload the beast list
                         DataManager.getAllBeasts()
@@ -585,12 +701,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                     .catch(error => {
                         console.error('Error loading data:', error);
-                        alert('Error loading data: ' + error);
+                        showFormattedAlert('Error', 'Error loading data: ' + error);
                     });
             };
             
             reader.onerror = function() {
-                alert('Error reading file');
+                showFormattedAlert('Error', 'Error reading file');
             };
             
             reader.readAsText(file);
@@ -602,7 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
             DataManager.getAllBeasts()
                 .then(beasts => {
                     if (beasts.length === 0) {
-                        alert('No beasts found in the database to download.');
+                        showFormattedAlert('No data', 'No beasts found in the database to download.');
                         return;
                     }
                     
@@ -690,51 +806,57 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .catch(error => {
                     console.error('Error downloading beasts:', error);
-                    alert('Error downloading beasts: ' + error);
+                    showFormattedAlert('Error', 'Error downloading beasts: ' + error);
                 });
         });
         
         // Reset data button
         elements.resetDataBtn.addEventListener('click', function() {
-            if (confirm('Are you sure you want to reset all data? This will delete all beasts and favorites.')) {
-                DataManager.clearAllData()
-                    .then(() => {
-                        alert('All data has been reset');
-                        
-                        // Clear the beast list
-                        document.getElementById('beastList').innerHTML = '<div class="text-center p-4">No beasts found</div>';
-                        
-                        // Clear the statblock display
-                        document.getElementById('statblockDisplay').innerHTML = `
-                            <div class="text-center p-5">
-                                <h3>Select a beast to view its statblock</h3>
-                                <p class="text-muted">The statblock will appear here</p>
-                            </div>
-                        `;
-                        
-                        // Reset CR filter options
-                        elements.minCR.innerHTML = '<option value="all">Any</option>';
-                        elements.maxCR.innerHTML = '<option value="all">Any</option>';
-                        availableCRs = [];
-                        
-                        // Disable buttons
-                        elements.wildshapeButton.disabled = true;
-                        elements.conjureAnimalsButton.disabled = true;
-                        elements.wildshapeFavoriteButton.disabled = true;
-                        elements.conjureFavoriteButton.disabled = true;
-                        
-                        // Close the modal
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('dataModal'));
-                        modal.hide();
-                        
-                        // Show upload prompt
-                        showUploadPrompt();
-                    })
-                    .catch(error => {
-                        console.error('Error resetting data:', error);
-                        alert('Error resetting data: ' + error);
-                    });
-            }
+            showFormattedConfirm(
+                'Reset Data Confirmation',
+                'Are you sure you want to reset all data? This will delete all beasts and favorites.',
+                () => {
+                    // User confirmed, proceed with data reset
+                    DataManager.clearAllData()
+                        .then(() => {
+                            showFormattedAlert('Data reset', 'All data has been reset');
+                            
+                            // Clear the beast list
+                            document.getElementById('beastList').innerHTML = '<div class="text-center p-4">No beasts found</div>';
+                            
+                            // Clear the statblock display
+                            document.getElementById('statblockDisplay').innerHTML = `
+                                <div class="text-center p-5">
+                                    <h3>Select a beast to view its statblock</h3>
+                                    <p class="text-muted">The statblock will appear here</p>
+                                </div>
+                            `;
+                            
+                            // Reset CR filter options
+                            elements.minCR.innerHTML = '<option value="all">Any</option>';
+                            elements.maxCR.innerHTML = '<option value="all">Any</option>';
+                            availableCRs = [];
+                            
+                            // Disable buttons
+                            elements.wildshapeButton.disabled = true;
+                            elements.conjureAnimalsButton.disabled = true;
+                            elements.wildshapeFavoriteButton.disabled = true;
+                            elements.conjureFavoriteButton.disabled = true;
+                            
+                            // Close the modal
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('dataModal'));
+                            modal.hide();
+                            
+                            // Show upload prompt
+                            showUploadPrompt();
+                        })
+                        .catch(error => {
+                            console.error('Error resetting data:', error);
+                            showFormattedAlert('Error', 'Error resetting data: ' + error);
+                        });
+                },
+                null  // No special action on cancel
+            );
         });
     }
     
@@ -788,18 +910,25 @@ document.addEventListener('DOMContentLoaded', function() {
         if (rawNewHp < 0) {
             const excessDamage = Math.abs(rawNewHp);
             
-            // Show confirmation dialog
-            if (confirm(`Your wildshape form has dropped to 0 HP with ${excessDamage} excess damage.\n\nClick OK to return to your normal form (statblock tab) or Cancel to remain in wildshape form with 0 HP.`)) {
-                // User clicked OK - reset and return to statblock tab
-                resetWildshapeHealthTracker();
-                
-                // Return to statblock tab
-                const statblockTabEl = new bootstrap.Tab(elements.statblockTab);
-                statblockTabEl.show();
-                return;
-            }
-            // User clicked Cancel - stay in form with 0 HP
-            hpBar.dataset.currentHp = 0;
+            // Show formatted confirmation dialog
+            showFormattedConfirm(
+                'Wildshape Form at 0 HP',
+                `Your wildshape form has dropped to 0 HP with ${excessDamage} excess damage.\n\nClick OK to return to your normal form (statblock tab) or Cancel to remain in wildshape form with 0 HP.`,
+                () => {
+                    // User clicked OK - reset and return to statblock tab
+                    resetWildshapeHealthTracker();
+                    
+                    // Return to statblock tab
+                    const statblockTabEl = new bootstrap.Tab(elements.statblockTab);
+                    statblockTabEl.show();
+                },
+                () => {
+                    // User clicked Cancel - stay in form with 0 HP
+                    hpBar.dataset.currentHp = 0;
+                    updateWildshapeHealthDisplay();
+                }
+            );
+            return; // Return early to prevent double update of display
         } else {
             // Normal update
             hpBar.dataset.currentHp = newHp;
