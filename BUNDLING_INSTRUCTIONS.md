@@ -11,8 +11,8 @@ This document explains how to bundle the Druid's Assistant application into a si
 ## Bundling Steps
 
 1. **Prepare the beast data file**:
-   - Make sure your beast data file is located at: `C:/Users/npara/Documents/GitHub/All beasts CR6 and below, druid seen, forest, grassland, hills.md`
-   - If your beast data is in a different location, edit the `beastDataFilePath` in `bundler.js`
+   - Make sure your beast data file is located in the same directory as the bundler.js file with the name: `All beasts CR6 and below, druid seen, forest, grassland, hills.md`
+   - If you need to use a different file or location, edit the `beastDataFilePath` in `bundler.js` to be relative to the bundler.js file
 
 2. **Open a command prompt**:
    - Press `Win + R`, type `cmd`, and press Enter

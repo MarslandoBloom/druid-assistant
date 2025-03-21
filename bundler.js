@@ -8,8 +8,8 @@ const CONFIG = {
   entryHtml: 'index.html',
   // Output file name
   outputFile: 'druid-assistant-bundle.html',
-  // Absolute path to beast data file
-  beastDataFilePath: 'C:/Users/npara/Documents/GitHub/All beasts CR6 and below, druid seen, forest, grassland, hills.md',
+  // Relative path to beast data file (relative to bundler.js location)
+  beastDataFilePath: './All beasts CR6 and below, druid seen, forest, grassland, hills.md',
   // Project base directory for resolving relative paths
   baseDir: './'
 };
@@ -238,7 +238,7 @@ async function bundleApp() {
     console.log(`Reading beast data from: ${CONFIG.beastDataFilePath}`);
     
     // Read beast data and convert to JavaScript
-    const beastMarkdown = readFile(CONFIG.beastDataFilePath, true); // true = absolute path
+    const beastMarkdown = readFile(CONFIG.beastDataFilePath); // Using relative path
     
     // Read and process main HTML
     let htmlContent = readFile(CONFIG.entryHtml);
