@@ -292,11 +292,11 @@ const UIManager = (function() {
             .then(isWildshapeFavorite => {
                 const wildshapeFavoriteButton = document.getElementById('wildshapeFavoriteButton');
                 if (isWildshapeFavorite) {
-                    wildshapeFavoriteButton.innerHTML = '<i class="bi bi-star-fill"></i> Wildshape Favorited';
+                    wildshapeFavoriteButton.innerHTML = '<span class="icon-star">★</span> Wildshape Favorited';
                     wildshapeFavoriteButton.classList.remove('btn-outline-success');
                     wildshapeFavoriteButton.classList.add('btn-success');
                 } else {
-                    wildshapeFavoriteButton.innerHTML = '<i class="bi bi-star"></i> Wildshape Favorite';
+                    wildshapeFavoriteButton.innerHTML = '<span class="icon-star">☆</span> Wildshape Favorite';
                     wildshapeFavoriteButton.classList.remove('btn-success');
                     wildshapeFavoriteButton.classList.add('btn-outline-success');
                 }
@@ -310,11 +310,11 @@ const UIManager = (function() {
             .then(isConjureFavorite => {
                 const conjureFavoriteButton = document.getElementById('conjureFavoriteButton');
                 if (isConjureFavorite) {
-                    conjureFavoriteButton.innerHTML = '<i class="bi bi-star-fill"></i> Conjure Favorited';
+                    conjureFavoriteButton.innerHTML = '<span class="icon-star">★</span> Conjure Favorited';
                     conjureFavoriteButton.classList.remove('btn-outline-success');
                     conjureFavoriteButton.classList.add('btn-success');
                 } else {
-                    conjureFavoriteButton.innerHTML = '<i class="bi bi-star"></i> Conjure Favorite';
+                    conjureFavoriteButton.innerHTML = '<span class="icon-star">☆</span> Conjure Favorite';
                     conjureFavoriteButton.classList.remove('btn-success');
                     conjureFavoriteButton.classList.add('btn-outline-success');
                 }

@@ -1,0 +1,41 @@
+/* 
+ * Direct icon definitions for bundling
+ * This replaces the Bootstrap Icons with direct Unicode and styling
+ */
+
+/* Down arrows for collapsible filter headers */
+.card-header.collapsible .bi-chevron-down::before {
+  content: "▼";
+  display: inline-block;
+  transition: transform 0.3s;
+}
+
+.card-header.collapsible.collapsed .bi-chevron-down::before {
+  transform: rotate(-90deg);
+}
+
+/* Star icons for favorite buttons */
+.icon-star {
+  display: inline-block;
+  font-size: 1.2em;
+  margin-right: 4px;
+  position: relative;
+  top: 1px;
+}
+
+/* For the JavaScript updates, we'll still handle bi-star and bi-star-fill */
+.bi-star::before {
+  content: "☆";
+  display: inline-block;
+}
+
+.bi-star-fill::before {
+  content: "★";
+  display: inline-block;
+}
+
+/* Override any default styling for our icons */
+.bi {
+  display: inline-block;
+  vertical-align: -0.125em;
+}
