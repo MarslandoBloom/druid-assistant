@@ -156,20 +156,20 @@ function displayDiceResults(container, results, rollType, modifier, shouldSum) {
                 <span class="dice-value ${diceValueClass}">${result.roll}</span> 
                 [<span class="${rollAClass}">${result.rollA}</span>, <span class="${rollBClass}">${result.rollB}</span>] + 
                 <span class="dice-modifier">${modifier}</span> = 
-                <span class="dice-total">${result.total}</span>
+                <strong>${result.total}</strong>
             </div>`;
         } else {
             html += `<div class="dice-result">
                 <span class="dice-value ${diceValueClass}">${result.roll}</span> + 
                 <span class="dice-modifier">${modifier}</span> = 
-                <span class="dice-total">${result.total}</span>
+                <strong>${result.total}</strong>
             </div>`;
         }
     });
     
     if (shouldSum && results.length > 1) {
         html += `<div class="dice-grand-total" style="column-span: all; -webkit-column-span: all;">
-            Total: ${grandTotal}
+            Total: <strong>${grandTotal}</strong>
         </div>`;
     }
     

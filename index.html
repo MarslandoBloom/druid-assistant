@@ -466,11 +466,16 @@
                             <input class="form-control" type="file" id="mdFileInput" accept=".md">
                         </div>
                         <div class="alert alert-warning">
-                            <strong>Warning!</strong> Uploading new data will remove all non-base data. The application includes base beast data by default. Resetting data will clear all beasts and favorites.
+                            <p>This assistant comes by default with all of the beasts that the Druid has seen in the forest, grassland and hill ecosystem from CR0 to CR6, plus a couple of other beasts the Druid has seen on his adventures.</p>
+                            
+                            <p>You can upload and download data to this assistant. Source new data from the 2014 version of 5etools in the .md format via the print view. https://2014.5e.tools/</p>
+                            
+                            <p><strong>Warning!</strong> Resetting the data will clear all beasts and favourites.</p>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-danger" id="resetDataBtn">Reset All Data</button>
+                        <button type="button" class="btn btn-outline-primary" id="downloadDataBtn">Download Data</button>
                         <button type="button" class="btn btn-success" id="uploadDataBtn">Upload Data</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>

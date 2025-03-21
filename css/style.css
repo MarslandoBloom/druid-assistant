@@ -393,25 +393,28 @@ body {
 }
 
 /* Only natural 20s/1s on d20 get special styling */
-#d20-results .dice-value.critical-success {
+#d20-results .dice-value.critical-success, 
+#d20-results .critical-success {
     color: var(--druid-green);
     font-weight: bold;
     text-shadow: 0 0 2px rgba(25, 135, 84, 0.3);
 }
 
-#d20-results .dice-value.critical-failure {
+#d20-results .dice-value.critical-failure,
+#d20-results .critical-failure {
     color: #dc3545; /* Bootstrap danger color */
     font-weight: bold;
     text-shadow: 0 0 2px rgba(220, 53, 69, 0.3);
 }
 
 .dice-modifier {
-    font-weight: bold;
+    font-weight: normal;
 }
 
-.dice-total {
+/* Make only the totals bold, not the individual dice results */
+.dice-result strong {
     font-weight: bold;
-    /* Remove underline */
+    color: black;
 }
 
 .dice-grand-total {

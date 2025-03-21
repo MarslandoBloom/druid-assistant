@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Data management
         mdFileInput: document.getElementById('mdFileInput'),
         uploadDataBtn: document.getElementById('uploadDataBtn'),
+        downloadDataBtn: document.getElementById('downloadDataBtn'),
         resetDataBtn: document.getElementById('resetDataBtn')
     };
     
@@ -144,22 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = new bootstrap.Modal(document.getElementById('dataModal'));
         modal.show();
         
-        // Check if we need to show the alert (only if no beasts found)
-        DataManager.getAllBeasts().then(beasts => {
-            if (beasts.length === 0) {
-                // Only add the info alert if it doesn't already exist
-                if (!document.querySelector('#dataModal .alert-info')) {
-                    const alertElement = document.createElement('div');
-                    alertElement.className = 'alert alert-info';
-                    alertElement.innerHTML = `
-                        <strong>Welcome!</strong> No beast data found. Please upload a markdown file with beast data to get started. Note that the application will include base beast data by default in the full version.
-                    `;
-                    
-                    const modalBody = document.querySelector('#dataModal .modal-body');
-                    modalBody.insertBefore(alertElement, modalBody.firstChild);
-                }
-            }
-        });
+        // No need to check for beasts and show alert - we've removed this functionality
     }
     
     /**
@@ -598,6 +584,104 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             
             reader.readAsText(file);
+        });
+        
+        // Download data button
+        elements.downloadDataBtn.addEventListener('click', function() {
+            // Get all beasts from the database
+            DataManager.getAllBeasts()
+                .then(beasts => {
+                    if (beasts.length === 0) {
+                        alert('No beasts found in the database to download.');
+                        return;
+                    }
+                    
+                    // Convert beasts to markdown format
+                    let markdown = '';
+                    
+                    beasts.forEach(beast => {
+                        // Start with the beast header
+                        markdown += `>## ${beast.name}\n`;
+                        markdown += `>*${beast.size} ${beast.type}${beast.subtype ? ` (${beast.subtype})` : ''}, ${beast.alignment}*\n\n`;
+                        
+                        // Add basic properties
+                        markdown += `>- **Armor Class** ${beast.ac}\n`;
+                        markdown += `>- **Hit Points** ${beast.hp}\n`;
+                        markdown += `>- **Speed** ${beast.speed}\n\n`;
+                        
+                        // Add ability scores as a table
+                        markdown += `>|STR|DEX|CON|INT|WIS|CHA|\n`;
+                        markdown += `>|:---:|:---:|:---:|:---:|:---:|:---:|\n`;
+                        markdown += `>|${beast.abilities.str}|${beast.abilities.dex}|${beast.abilities.con}|${beast.abilities.int}|${beast.abilities.wis}|${beast.abilities.cha}|\n\n`;
+                        
+                        // Add other properties
+                        if (beast.skills) markdown += `>- **Skills** ${beast.skills}\n`;
+                        if (beast.damageResistances) markdown += `>- **Damage Resistances** ${beast.damageResistances}\n`;
+                        if (beast.damageVulnerabilities) markdown += `>- **Damage Vulnerabilities** ${beast.damageVulnerabilities}\n`;
+                        if (beast.damageImmunities) markdown += `>- **Damage Immunities** ${beast.damageImmunities}\n`;
+                        if (beast.conditionImmunities) markdown += `>- **Condition Immunities** ${beast.conditionImmunities}\n`;
+                        markdown += `>- **Senses** ${beast.senses}\n`;
+                        markdown += `>- **Languages** ${beast.languages}\n`;
+                        markdown += `>- **Challenge** ${beast.cr} (${beast.xp})\n\n`;
+                        
+                        // Add traits
+                        if (beast.traits && beast.traits.length > 0) {
+                            beast.traits.forEach(trait => {
+                                markdown += `>***${trait.name}.*** ${trait.desc}\n\n`;
+                            });
+                        }
+                        
+                        // Add actions
+                        if (beast.actions && beast.actions.length > 0) {
+                            markdown += `>### Actions\n\n`;
+                            beast.actions.forEach(action => {
+                                markdown += `>***${action.name}.*** ${action.desc}\n\n`;
+                            });
+                        }
+                        
+                        // Add reactions
+                        if (beast.reactions && beast.reactions.length > 0) {
+                            markdown += `>### Reactions\n\n`;
+                            beast.reactions.forEach(reaction => {
+                                markdown += `>***${reaction.name}.*** ${reaction.desc}\n\n`;
+                            });
+                        }
+                        
+                        // Add legendary actions
+                        if (beast.legendaryActions && beast.legendaryActions.length > 0) {
+                            markdown += `>### Legendary Actions\n\n`;
+                            beast.legendaryActions.forEach(legendaryAction => {
+                                markdown += `>***${legendaryAction.name}.*** ${legendaryAction.desc}\n\n`;
+                            });
+                        }
+                        
+                        // End of statblock marker
+                        markdown += `null\n\n`;
+                        
+                        // Add description if available
+                        if (beast.description) {
+                            markdown += `## ${beast.name}\n\n${beast.description}\n\n`;
+                        }
+                        
+                        // Add separator between beasts
+                        markdown += `___\n\n`;
+                    });
+                    
+                    // Create and trigger download
+                    const blob = new Blob([markdown], { type: 'text/markdown' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'druid-assistant-beasts.md';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Error downloading beasts:', error);
+                    alert('Error downloading beasts: ' + error);
+                });
         });
         
         // Reset data button
