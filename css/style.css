@@ -255,6 +255,7 @@ body {
     margin-bottom: 15px;
     background-color: #f8f9fa;
     position: relative;
+    word-break: break-word;
 }
 
 .animal-tile.selected {
@@ -519,5 +520,71 @@ body {
     
     #conjure-statblock .statblock-container {
         font-size: 0.8rem;
+    }
+    
+    /* Improved tablet portrait mode layout */
+    #conjured-animals-list .col-sm-6,
+    #conjured-animals-list .col-md-4 {
+        width: 100%;
+    }
+    
+    #conjured-animals-container {
+        width: 65%;
+    }
+    
+    #conjure-statblock-container {
+        width: 35%;
+    }
+    
+    .animal-tile {
+        font-size: 0.9rem;
+        padding: 12px;
+    }
+}
+
+/* Specific adjustments for tablets in portrait mode */
+@media (min-width: 768px) and (max-width: 992px) and (orientation: portrait) {
+    #conjured-animals-list {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    #conjured-animals-list .col-md-4,
+    #conjured-animals-list .col-sm-6 {
+        width: 50%;
+    }
+    
+    .animal-tile {
+        height: calc(100% - 15px);
+        font-size: 0.95rem;
+    }
+    
+    #conjured-animals-container {
+        width: 55%;
+    }
+    
+    #conjure-statblock-container {
+        width: 45%;
+    }
+    
+    /* Make statblock more readable on tablet portrait mode */
+    #conjure-statblock .statblock-container {
+        font-size: 0.9rem;
+        padding: 15px;
+    }
+    
+    /* Make animal action sections more compact */
+    .animal-tile .attack-section {
+        margin-top: 5px;
+    }
+    
+    .animal-tile .attack-checkboxes {
+        display: flex;
+        flex-wrap: wrap;
+        column-gap: 15px;
+    }
+    
+    .animal-tile .form-check {
+        margin-bottom: 5px;
     }
 }

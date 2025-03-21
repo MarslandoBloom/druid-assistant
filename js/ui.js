@@ -1254,9 +1254,13 @@ const UIManager = (function() {
         
         const maxHP = extractMaxHP(beast.hp);
         
+        // Adjust tile layout based on screen size and orientation
+        const isTabletPortrait = window.matchMedia('(min-width: 768px) and (max-width: 992px) and (orientation: portrait)').matches;
+        const gridClass = isTabletPortrait ? 'col-6 mb-2' : 'col-md-4 col-sm-6 mb-3';
+        
         for (let i = 1; i <= numCreatures; i++) {
             const tileElement = document.createElement('div');
-            tileElement.className = 'col-md-4 col-sm-6 mb-3';
+            tileElement.className = gridClass;
             tileElement.innerHTML = `
                 <div class="animal-tile" data-animal-id="${i}">
                     <h5 class="mb-2">${beast.name} #${i}</h5>
