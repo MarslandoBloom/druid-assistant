@@ -35,6 +35,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="dice-roller-tab" data-bs-toggle="tab" data-bs-target="#dice-roller" type="button" role="tab" aria-controls="dice-roller" aria-selected="false">Dice Roller</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="spell-tab" data-bs-toggle="tab" data-bs-target="#spells" type="button" role="tab" aria-controls="spells" aria-selected="false">Spells</button>
+            </li>
         </ul>
 
         <!-- Tab Content -->
@@ -456,6 +459,147 @@
                     </div>
                 </div>
             </div>
+        <!-- Spells Tab -->
+        <div class="tab-pane fade" id="spells" role="tabpanel" aria-labelledby="spell-tab">
+            <div class="row m-0">
+                <!-- Spell List Column -->
+                <div class="col-md-6 col-lg-5 p-3 bg-light">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="spellSearch" placeholder="Search spells...">
+                        <button class="btn btn-outline-success" type="button" id="clearSpellSearch">Clear</button>
+                    </div>
+                    
+                    <!-- Spell Level Filter -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-success text-white collapsible collapsed d-flex justify-content-between align-items-center" data-filter="level">
+                            <h6 class="mb-0">Spell Level</h6>
+                            <i class="bi bi-chevron-down"></i>
+                        </div>
+                        <div class="card-body filter-content collapsed" id="level-filter-content">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="all">All</button>
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="cantrip">Cantrip</button>
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="1">1st</button>
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="2">2nd</button>
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="3">3rd</button>
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="4">4th</button>
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="5">5th</button>
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="6">6th</button>
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="7">7th</button>
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="8">8th</button>
+                                <button class="btn btn-sm btn-outline-success level-filter" data-level="9">9th</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- School Filter -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-success text-white collapsible collapsed d-flex justify-content-between align-items-center" data-filter="school">
+                            <h6 class="mb-0">School</h6>
+                            <i class="bi bi-chevron-down"></i>
+                        </div>
+                        <div class="card-body filter-content collapsed" id="school-filter-content">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-sm btn-outline-success school-filter" data-school="all">All</button>
+                                <button class="btn btn-sm btn-outline-success school-filter" data-school="abjuration">Abjuration</button>
+                                <button class="btn btn-sm btn-outline-success school-filter" data-school="conjuration">Conjuration</button>
+                                <button class="btn btn-sm btn-outline-success school-filter" data-school="divination">Divination</button>
+                                <button class="btn btn-sm btn-outline-success school-filter" data-school="enchantment">Enchantment</button>
+                                <button class="btn btn-sm btn-outline-success school-filter" data-school="evocation">Evocation</button>
+                                <button class="btn btn-sm btn-outline-success school-filter" data-school="illusion">Illusion</button>
+                                <button class="btn btn-sm btn-outline-success school-filter" data-school="necromancy">Necromancy</button>
+                                <button class="btn btn-sm btn-outline-success school-filter" data-school="transmutation">Transmutation</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sort and Prepared Filter Controls -->
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="showPreparedOnly">
+                            <label class="form-check-label" for="showPreparedOnly">
+                                Prepared Only
+                            </label>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" id="spellSortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                Sort: Name (A-Z)
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="spellSortDropdown">
+                                <li><a class="dropdown-item spell-sort-option" data-sort="name" data-direction="asc" href="#">Name (A-Z)</a></li>
+                                <li><a class="dropdown-item spell-sort-option" data-sort="name" data-direction="desc" href="#">Name (Z-A)</a></li>
+                                <li><a class="dropdown-item spell-sort-option" data-sort="level" data-direction="asc" href="#">Level (Low-High)</a></li>
+                                <li><a class="dropdown-item spell-sort-option" data-sort="level" data-direction="desc" href="#">Level (High-Low)</a></li>
+                                <li><a class="dropdown-item spell-sort-option" data-sort="school" data-direction="asc" href="#">School (A-Z)</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group" id="spellList">
+                        <!-- Spell list will be populated here -->
+                        <div class="text-center p-4">Loading spells...</div>
+                    </div>
+                </div>
+                
+                <!-- Spell Details & Management Column -->
+                <div class="col-md-6 col-lg-7 p-3">
+                    <!-- Top Section: Spell Details -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <h4 id="spellName">Select a spell</h4>
+                                <div>
+                                    <button class="btn btn-sm btn-success" id="prepareSpellButton" disabled>Prepare Spell</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body" id="spellDetails">
+                            <div class="text-center p-5">
+                                <h5>Select a spell to view its details</h5>
+                                <p class="text-muted">Spell details will appear here</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bottom Section: Spell Slots -->
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h4 class="mb-0">Spell Slots</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3" id="spellSlotContainer">
+                                <!-- Level 1 -->
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card">
+                                        <div class="card-header bg-success text-white py-1">
+                                            <h6 class="mb-0">1st Level</h6>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="spell-slot-tracker" data-level="1">
+                                                    <button class="btn btn-sm btn-outline-success spell-slot-btn" data-slot="1">1</button>
+                                                    <button class="btn btn-sm btn-outline-success spell-slot-btn" data-slot="2">2</button>
+                                                    <button class="btn btn-sm btn-outline-success spell-slot-btn" data-slot="3">3</button>
+                                                    <button class="btn btn-sm btn-outline-success spell-slot-btn" data-slot="4">4</button>
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-secondary reset-slots-btn" data-level="1">Reset</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Additional spell slot levels will be dynamically generated -->
+                            </div>
+                            
+                            <!-- Settings for configuring available slots -->
+                            <div class="d-flex justify-content-end mt-3">
+                                <button class="btn btn-sm btn-outline-success" id="configureSpellSlotsButton">Configure Slots</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         </div>
 
         <!-- Data Management Modal -->
@@ -489,6 +633,26 @@
             </div>
         </div>
 
+        <!-- Spell Slot Configuration Modal -->
+        <div class="modal fade" id="spellSlotConfigModal" tabindex="-1" aria-labelledby="spellSlotConfigModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="spellSlotConfigModalLabel">Configure Spell Slots</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Adjust the number of spell slots for each level:</p>
+                        <div id="slotConfigForm"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" id="saveSlotConfigBtn">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="bg-success text-white text-center p-3 mt-3">
             <div class="container">
@@ -515,6 +679,7 @@
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
     <script src="js/dice-roller.js"></script>
+    <script src="js/spells.js"></script>
     <script>
         // Register service worker for PWA support
         if ('serviceWorker' in navigator) {

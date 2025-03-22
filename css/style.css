@@ -499,6 +499,70 @@ body {
     overflow-y: auto;
 }
 
+/* Spell Tab Styles */
+.spell-prepared {
+    border-left: 4px solid #198754;
+}
+
+.spell-header {
+    margin-bottom: 1rem;
+}
+
+.spell-header p {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.spell-meta p {
+    margin-bottom: 0.3rem;
+}
+
+.spell-description {
+    margin-top: 1rem;
+}
+
+.spell-slot-tracker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.spell-slot-btn {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Filter collapsible headers */
+.collapsible {
+    cursor: pointer;
+}
+
+.collapsible i {
+    transition: transform 0.3s ease-in-out;
+}
+
+.collapsible.collapsed i {
+    transform: rotate(-90deg);
+}
+
+.filter-content {
+    max-height: 300px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+}
+
+.filter-content.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    border: none;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .statblock-ability-scores {
