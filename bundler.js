@@ -10,6 +10,8 @@ const CONFIG = {
   outputFile: 'The Druid Assistant.html',
   // Relative path to beast data file (relative to bundler.js location)
   beastDataFilePath: './All beasts CR6 and below, druid seen, forest, grassland, hills.md',
+  // Relative path to spell data file (relative to bundler.js location)
+  spellDataFilePath: './spells-5etools-2014-subset-druid.md',
   // Project base directory for resolving relative paths
   baseDir: './'
 };
@@ -228,26 +230,42 @@ async function bundleApp() {
   try {
     console.log("Starting bundling process...");
     
-    // Verify beast data file exists before proceeding
+    // Verify input files exist before proceeding
     if (!fileExists(CONFIG.beastDataFilePath)) {
       console.error(`Beast data file not found at: ${CONFIG.beastDataFilePath}`);
       console.error("Please update the CONFIG.beastDataFilePath with the correct path.");
       process.exit(1);
     }
     
+    if (!fileExists(CONFIG.spellDataFilePath)) {
+      console.error(`Spell data file not found at: ${CONFIG.spellDataFilePath}`);
+      console.error("Please update the CONFIG.spellDataFilePath with the correct path.");
+      process.exit(1);
+    }
+    
     console.log(`Reading beast data from: ${CONFIG.beastDataFilePath}`);
+    console.log(`Reading spell data from: ${CONFIG.spellDataFilePath}`);
     
     // Read beast data and convert to JavaScript
     const beastMarkdown = readFile(CONFIG.beastDataFilePath); // Using relative path
+    
+    // Read spell data
+    console.log(`Reading spell data from: ${CONFIG.spellDataFilePath}`);
+    const spellMarkdown = readFile(CONFIG.spellDataFilePath); // Using relative path
+    console.log(`Successfully read spell data (${spellMarkdown.length} characters)`);
     
     // Read and process main HTML
     let htmlContent = readFile(CONFIG.entryHtml);
     htmlContent = await processHtml(htmlContent);
     
-    // Insert beast data before closing body tag
-    const beastDataRawScript = '<script>\n' +
+    // Insert beast and spell data before closing body tag
+    const dataRawScript = '<script>\n' +
       '  // Beast data from markdown file - stored as raw markdown\n' +
       '  const BEAST_DATA_RAW = ' + JSON.stringify(beastMarkdown) + ';\n' +
+      '  \n' +
+      '  // Spell data from markdown file - stored as raw markdown\n' +
+      '  const SPELL_DATA_RAW = ' + JSON.stringify(spellMarkdown) + ';\n' +
+      '  window.spellData = SPELL_DATA_RAW; // Make available to window object for SpellManager\n' +
       '  \n' +
       '  // Create debug console\n' +
       '  function createDebugConsole() {\n' +
@@ -325,6 +343,37 @@ async function bundleApp() {
       '    }\n' +
       '  }\n' +
       '  \n' +
+      '  // Import spell data function\n' +
+      '  async function importSpellData() {\n' +
+      '    debugLog("Importing spell data...");\n' +
+      '    \n' +
+      '    try {\n' +
+      '      // Check if SpellManager exists\n' +
+      '      if (typeof SpellManager === "undefined") {\n' +
+      '        debugLog("SpellManager is not defined yet, will try to initialize later", "warning");\n' +
+      '        return;\n' +
+      '      }\n' +
+      '      \n' +
+      '      // Check if parseSpellsMarkdown function exists\n' +
+      '      if (typeof SpellManager.parseSpellsMarkdown !== "function") {\n' +
+      '        debugLog("SpellManager.parseSpellsMarkdown is not a function", "warning");\n' +
+      '        return;\n' +
+      '      }\n' +
+      '      \n' +
+      '      // Log raw data length\n' +
+      '      debugLog(`Spell data length: ${SPELL_DATA_RAW.length} characters`);\n' +
+      '      \n' +
+      '      // Parse spell data\n' +
+      '      const spells = SpellManager.parseSpellsMarkdown(SPELL_DATA_RAW);\n' +
+      '      debugLog(`Successfully parsed ${spells.length} spells from bundled data`);\n' +
+      '    } catch (error) {\n' +
+      '      debugLog(`Error importing spell data: ${error.message}`, "error");\n' +
+      '      if (error.stack) {\n' +
+      '        debugLog(`Stack trace: ${error.stack}`, "error");\n' +
+      '      }\n' +
+      '    }\n' +
+      '  }\n' +
+      '  \n' +
       '  // Import beast data function\n' +
       '  async function importBeastData() {\n' +
       '    debugLog("Manual import started...");\n' +
@@ -393,14 +442,38 @@ async function bundleApp() {
       '        return;\n' +
       '      }\n' +
       '      \n' +
-      '      // Import the data\n' +
+      '      // Import the beast data\n' +
       '      await importBeastData();\n' +
+      '      \n' +
+      '      // Try to import spell data if SpellManager is available\n' +
+      '      if (typeof SpellManager !== "undefined") {\n' +
+      '        debugLog("SpellManager found, importing spell data...");\n' +
+      '        await importSpellData();\n' +
+      '      } else {\n' +
+      '        debugLog("SpellManager not found, will try to import spell data when spells tab is activated");\n' +
+      '        // Setup a mutation observer to watch for script loads\n' +
+      '        const observer = new MutationObserver(async (mutations) => {\n' +
+      '          mutations.forEach((mutation) => {\n' +
+      '            if (mutation.type === "childList" && mutation.addedNodes.length > 0) {\n' +
+      '              // Check if SpellManager is now available\n' +
+      '              if (typeof SpellManager !== "undefined") {\n' +
+      '                debugLog("SpellManager now available, importing spell data...");\n' +
+      '                importSpellData();\n' +
+      '                observer.disconnect();\n' +
+      '              }\n' +
+      '            }\n' +
+      '          });\n' +
+      '        });\n' +
+      '        \n' +
+      '        // Start observing the document for script additions\n' +
+      '        observer.observe(document.documentElement, { childList: true, subtree: true });\n' +
+      '      }\n' +
       '    }, 2000); // Wait 2 seconds to ensure scripts are loaded\n' +
       '  });\n' +
       '</script>\n' +
       '</body>';
     
-    htmlContent = htmlContent.replace('</body>', beastDataRawScript);
+    htmlContent = htmlContent.replace('</body>', dataRawScript);
     
     // Write output file
     fs.writeFileSync(CONFIG.outputFile, htmlContent);

@@ -121,47 +121,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // DOM elements
     const elements = {
-        // Tabs and navigation
-        mainTabs: document.getElementById('mainTabs'),
-        statblockTab: document.getElementById('statblock-tab'),
-        wildshapeTab: document.getElementById('wildshape-tab'),
-        conjureAnimalsTab: document.getElementById('conjure-animals-tab'),
-        
-        // Beast list and filtering
-        beastSearch: document.getElementById('beastSearch'),
-        clearSearch: document.getElementById('clearSearch'),
-        enableCRRange: document.getElementById('enableCRRange'),
-        crRangeInputs: document.getElementById('crRangeInputs'),
-        minCR: document.getElementById('minCR'),
-        maxCR: document.getElementById('maxCR'),
-        applyCRFilter: document.getElementById('applyCRFilter'),
-        sizeFilters: document.querySelectorAll('.size-filter'),
-        showWildshapeFavorites: document.getElementById('showWildshapeFavorites'),
-        showConjureFavorites: document.getElementById('showConjureFavorites'),
-        backToListBtn: document.getElementById('backToListBtn'),
-        resetFilters: document.getElementById('resetFilters'),
-        
-        // Action buttons
-        wildshapeButton: document.getElementById('wildshapeButton'),
-        conjureAnimalsButton: document.getElementById('conjureAnimalsButton'),
-        wildshapeFavoriteButton: document.getElementById('wildshapeFavoriteButton'),
-        conjureFavoriteButton: document.getElementById('conjureFavoriteButton'),
+    // Tabs and navigation
+    mainTabs: document.getElementById('mainTabs'),
+    statblockTab: document.getElementById('statblock-tab'),
+    wildshapeTab: document.getElementById('wildshape-tab'),
+    conjureAnimalsTab: document.getElementById('conjure-animals-tab'),
+    spellsTab: document.getElementById('spells-tab'),
+    
+    // Beast list and filtering
+    beastSearch: document.getElementById('beastSearch'),
+    clearSearch: document.getElementById('clearSearch'),
+    enableCRRange: document.getElementById('enableCRRange'),
+    crRangeInputs: document.getElementById('crRangeInputs'),
+    minCR: document.getElementById('minCR'),
+    maxCR: document.getElementById('maxCR'),
+    applyCRFilter: document.getElementById('applyCRFilter'),
+    sizeFilters: document.querySelectorAll('.size-filter'),
+    showWildshapeFavorites: document.getElementById('showWildshapeFavorites'),
+    showConjureFavorites: document.getElementById('showConjureFavorites'),
+    backToListBtn: document.getElementById('backToListBtn'),
+    resetFilters: document.getElementById('resetFilters'),
+    
+    // Action buttons
+    wildshapeButton: document.getElementById('wildshapeButton'),
+    conjureAnimalsButton: document.getElementById('conjureAnimalsButton'),
+    wildshapeFavoriteButton: document.getElementById('wildshapeFavoriteButton'),
+            conjureFavoriteButton: document.getElementById('conjureFavoriteButton'),
 
-        // Conjure Animals tab
-        advantageSelect: document.getElementById('advantage-select'),
-        groupAttackBtn: document.getElementById('group-attack-btn'),
-        groupDamageBtn: document.getElementById('group-damage-btn'),
-        totalGroupDamage: document.getElementById('total-group-damage'),
-        conjuredAnimalsList: document.getElementById('conjured-animals-list'),
-        conjureStatblock: document.getElementById('conjure-statblock'),
-        battlefield: document.getElementById('battlefield'),
-        addEnemyBtn: document.getElementById('add-enemy-btn'),
-        
-        // Data management
-        mdFileInput: document.getElementById('mdFileInput'),
-        uploadDataBtn: document.getElementById('uploadDataBtn'),
-        downloadDataBtn: document.getElementById('downloadDataBtn'),
-        resetDataBtn: document.getElementById('resetDataBtn')
+    // Conjure Animals tab
+    advantageSelect: document.getElementById('advantage-select'),
+    groupAttackBtn: document.getElementById('group-attack-btn'),
+    groupDamageBtn: document.getElementById('group-damage-btn'),
+    totalGroupDamage: document.getElementById('total-group-damage'),
+    conjuredAnimalsList: document.getElementById('conjured-animals-list'),
+    conjureStatblock: document.getElementById('conjure-statblock'),
+    battlefield: document.getElementById('battlefield'),
+    addEnemyBtn: document.getElementById('add-enemy-btn'),
+    
+    // Data management
+    mdFileInput: document.getElementById('mdFileInput'),
+    spellMdFileInput: document.getElementById('spellMdFileInput'),
+    uploadDataBtn: document.getElementById('uploadDataBtn'),
+            downloadDataBtn: document.getElementById('downloadDataBtn'),
+            resetDataBtn: document.getElementById('resetDataBtn')
     };
     
     // Store available CR values
@@ -679,50 +681,182 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Upload data button
         elements.uploadDataBtn.addEventListener('click', function() {
-            const fileInput = elements.mdFileInput;
-            if (fileInput.files.length === 0) {
-                showFormattedAlert('Missing file', 'Please select a file to upload');
-                return;
+            const beastFileInput = elements.mdFileInput;
+            const spellFileInput = elements.spellMdFileInput;
+            let beastData = null;
+            let spellData = null;
+            let beastCount = 0;
+            let spellCount = 0;
+            
+            // Check if beast file is selected
+            if (beastFileInput.files.length > 0) {
+                const file = beastFileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    beastData = e.target.result;
+                    
+                    // Process the markdown file
+                    DataManager.loadBeastData(beastData)
+                        .then(count => {
+                            beastCount = count;
+                            console.log(`Successfully loaded ${count} beasts!`);
+                            
+                            // Reload the beast list
+                            DataManager.getAllBeasts()
+                                .then(beasts => {
+                                    UIManager.renderBeastList(beasts);
+                                    
+                                    // Refresh CR filter options
+                                    initCRFilterOptions(beasts);
+                                });
+                                
+                            // Reset the file input
+                            beastFileInput.value = '';
+                            
+                            // Show success message after processing both files
+                            if (spellFileInput.files.length === 0 || spellCount > 0) {
+                                let message = `Successfully loaded ${beastCount} beasts!`;
+                                if (spellCount > 0) {
+                                    message += `\nSuccessfully loaded ${spellCount} spells!`;
+                                }
+                                showFormattedAlert('Success', message);
+                                
+                                // Close the modal
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('dataModal'));
+                                modal.hide();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading beast data:', error);
+                            showFormattedAlert('Error', 'Error loading beast data: ' + error);
+                        });
+                };
+                
+                reader.onerror = function() {
+                    showFormattedAlert('Error', 'Error reading beast file');
+                };
+                
+                reader.readAsText(file);
             }
             
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const content = e.target.result;
+            // Check if spell file is selected
+            if (spellFileInput.files.length > 0) {
+                const file = spellFileInput.files[0];
+                const reader = new FileReader();
                 
-                // Process the markdown file
-                DataManager.loadBeastData(content)
-                    .then(count => {
-                        showFormattedAlert('Success', `Successfully loaded ${count} beasts!`);
+                reader.onload = function(e) {
+                    spellData = e.target.result;
+                    
+                    // Process the markdown file
+                    if (typeof SpellManager !== 'undefined') {
+                        // Make sure we're accessing the actual parseSpellsMarkdown method correctly
+                        console.log('Found SpellManager, parsing spells');
+                        const spells = SpellManager.parseSpellsMarkdown(spellData);
+                        console.log(`Parsed ${spells.length} spells from file`);
                         
-                        // Reload the beast list
-                        DataManager.getAllBeasts()
-                            .then(beasts => {
-                                UIManager.renderBeastList(beasts);
-                                
-                                // Refresh CR filter options
-                                initCRFilterOptions(beasts);
-                            });
-                        
-                        // Close the modal
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('dataModal'));
-                        modal.hide();
-                        
-                        // Reset the file input
-                        fileInput.value = '';
-                    })
-                    .catch(error => {
-                        console.error('Error loading data:', error);
-                        showFormattedAlert('Error', 'Error loading data: ' + error);
-                    });
-            };
+                        // Check if saveSpellsToDB is a function
+                        if (typeof SpellManager.saveSpellsToDB === 'function') {
+                            SpellManager.saveSpellsToDB(spells)
+                                .then(() => {
+                                    spellCount = spells.length;
+                                    console.log(`Successfully loaded ${spellCount} spells!`);
+                                    
+                                    // Reset the file input
+                                    spellFileInput.value = '';
+                                    
+                                    // Show success message after processing both files
+                                    if (beastFileInput.files.length === 0 || beastCount > 0) {
+                                        let message = '';
+                                        if (beastCount > 0) {
+                                            message = `Successfully loaded ${beastCount} beasts!\n`;
+                                        }
+                                        message += `Successfully loaded ${spellCount} spells!`;
+                                        showFormattedAlert('Success', message);
+                                        
+                                        // Close the modal
+                                        const modal = bootstrap.Modal.getInstance(document.getElementById('dataModal'));
+                                        modal.hide();
+                                    }
+                                    
+                                    // Refresh the spell list if we're on the spells tab
+                                    if (document.getElementById('spells').classList.contains('active')) {
+                                        if (SpellManager.init) {
+                                            SpellManager.init();
+                                        }
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error saving spell data:', error);
+                                    showFormattedAlert('Error', 'Error saving spell data: ' + error);
+                                });
+                        } else {
+                            console.error('SpellManager.saveSpellsToDB is not a function');
+                            console.dir(SpellManager);
+                            // Create a custom implementation to save spells if the method is missing
+                            if (window.indexedDB && typeof SpellManager.getSpellDatabase === 'function') {
+                                SpellManager.getSpellDatabase()
+                                    .then(db => {
+                                        const transaction = db.transaction(['spells'], 'readwrite');
+                                        const store = transaction.objectStore('spells');
+                                        let savedCount = 0;
+                                        
+                                        spells.forEach(spell => {
+                                            try {
+                                                store.put(spell);
+                                                savedCount++;
+                                            } catch (e) {
+                                                console.error(`Error saving spell ${spell.name}:`, e);
+                                            }
+                                        });
+                                        
+                                        transaction.oncomplete = () => {
+                                            spellCount = savedCount;
+                                            console.log(`Successfully saved ${savedCount} spells!`);
+                                            
+                                            // Show success message
+                                            let message = '';
+                                            if (beastCount > 0) {
+                                                message = `Successfully loaded ${beastCount} beasts!\n`;
+                                            }
+                                            message += `Successfully loaded ${spellCount} spells!`;
+                                            showFormattedAlert('Success', message);
+                                            
+                                            // Close the modal
+                                            const modal = bootstrap.Modal.getInstance(document.getElementById('dataModal'));
+                                            modal.hide();
+                                            
+                                            // Refresh spell list if on spells tab
+                                            if (document.getElementById('spells').classList.contains('active') && SpellManager.init) {
+                                                SpellManager.init();
+                                            }
+                                        };
+                                    })
+                                    .catch(error => {
+                                        console.error('Error getting spell database:', error);
+                                        showFormattedAlert('Error', 'Error saving spell data: Database access failed');
+                                    });
+                            } else {
+                                showFormattedAlert('Error', 'Error saving spell data: SpellManager not properly initialized');
+                            }
+                        }
+                    } else {
+                        console.error('SpellManager is not defined');
+                        showFormattedAlert('Error', 'Error loading spell data: SpellManager not properly initialized');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showFormattedAlert('Error', 'Error reading spell file');
+                };
+                
+                reader.readAsText(file);
+            }
             
-            reader.onerror = function() {
-                showFormattedAlert('Error', 'Error reading file');
-            };
-            
-            reader.readAsText(file);
+            // Show message if no files were selected
+            if (beastFileInput.files.length === 0 && spellFileInput.files.length === 0) {
+                showFormattedAlert('Missing file', 'Please select at least one file to upload');
+            }
         });
         
         // Download data button
@@ -827,10 +961,32 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.resetDataBtn.addEventListener('click', function() {
             showFormattedConfirm(
                 'Reset Data Confirmation',
-                'Are you sure you want to reset all data? This will delete all beasts and favorites.',
+                'Are you sure you want to reset all data? This will delete all beasts, spells, and favorites.',
                 () => {
                     // User confirmed, proceed with data reset
+                    // First clear beast data
                     DataManager.clearAllData()
+                        .then(() => {
+                            // Then clear spell data if SpellManager is available
+                            if (typeof SpellManager !== 'undefined') {
+                                if (typeof SpellManager.clearAllSpellData === 'function') {
+                                    return SpellManager.clearAllSpellData();
+                                } else if (typeof SpellManager.getSpellDatabase === 'function') {
+                                    // Alternative approach if clearAllSpellData is not available
+                                    return SpellManager.getSpellDatabase().then(db => {
+                                        const transaction = db.transaction(['spells'], 'readwrite');
+                                        const store = transaction.objectStore('spells');
+                                        const clearRequest = store.clear();
+                                        
+                                        return new Promise((resolve, reject) => {
+                                            clearRequest.onsuccess = () => resolve();
+                                            clearRequest.onerror = (event) => reject(event.target.error);
+                                        });
+                                    });
+                                }
+                            }
+                            return Promise.resolve(); // Continue if SpellManager is not available
+                        })
                         .then(() => {
                             showFormattedAlert('Data reset', 'All data has been reset');
                             
@@ -855,6 +1011,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             elements.conjureAnimalsButton.disabled = true;
                             elements.wildshapeFavoriteButton.disabled = true;
                             elements.conjureFavoriteButton.disabled = true;
+                            
+                            // Clear the spell list if we're on the spells tab
+                            if (document.getElementById('spellList')) {
+                                document.getElementById('spellList').innerHTML = '<div class="text-center p-4">No spells found</div>';
+                            }
                             
                             // Close the modal
                             const modal = bootstrap.Modal.getInstance(document.getElementById('dataModal'));

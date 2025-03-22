@@ -78,8 +78,17 @@ const UIManager = (function() {
     // Current state
     let currentBeast = null;
     let currentFilters = { name: '', cr: 'all', size: 'all' };
-    let currentSort = 'name';
-    let currentSortDirection = 'asc';
+    // Default to CR (high to low) sorting as per requirements
+    let currentSort = 'cr';
+    let currentSortDirection = 'desc';
+    
+    // Update the sort dropdown text to match the default
+    document.addEventListener('DOMContentLoaded', function() {
+        const sortDropdown = document.getElementById('sortDropdown');
+        if (sortDropdown) {
+            sortDropdown.textContent = 'Sort: CR (High-Low)';
+        }
+    });
     
     // Source information mapping for beasts
     // This would ideally come from the data file, but we'll hardcode some examples
@@ -949,9 +958,17 @@ const UIManager = (function() {
      */
     function resetFilters() {
         currentFilters = { name: '', cr: 'all', size: 'all' };
-        currentSort = 'name';
-        currentSortDirection = 'asc';
+        // Reset to default sort (CR high to low)
+        currentSort = 'cr';
+        currentSortDirection = 'desc';
         elements.beastSearch.value = '';
+        
+        // Update sort dropdown text
+        const sortDropdown = document.getElementById('sortDropdown');
+        if (sortDropdown) {
+            sortDropdown.textContent = 'Sort: CR (High-Low)';
+        }
+        
         applyFilters();
     }
     

@@ -499,6 +499,165 @@ body {
     overflow-y: auto;
 }
 
+/* Spell Display Styling */
+.spell-container {
+    font-family: 'Noto Serif', 'Palatino Linotype', serif;
+    background-color: var(--statblock-background);
+    border: 1px solid var(--statblock-border-color);
+    border-radius: 5px;
+    margin: 10px 0;
+    padding: 10px 20px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.spell-name {
+    color: #822000;
+    font-size: 1.8em;
+    font-variant: small-caps;
+    font-weight: bold;
+    margin: 0;
+    border-bottom: 1px solid #822000;
+    padding-bottom: 2px;
+}
+
+.spell-level-school {
+    font-style: italic;
+    margin: 5px 0 10px 0;
+    color: #444;
+}
+
+.spell-separator {
+    height: 4px;
+    background-color: var(--statblock-bar-color);
+    border: 1px solid #000;
+    border-radius: 2px;
+    margin: 5px 0 10px 0;
+}
+
+.spell-property {
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.spell-property-name {
+    font-weight: bold;
+    color: #333;
+}
+
+.spell-property-value {
+    display: inline;
+}
+
+.spell-description {
+    margin-top: 15px;
+    line-height: 1.6;
+    color: #222;
+}
+
+.spell-description p {
+    margin-bottom: 0.8rem;
+}
+
+.spell-description table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.spell-description th,
+.spell-description td {
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.spell-description th {
+    background-color: #f5f5f5;
+}
+
+.spell-higher-levels {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    font-style: italic;
+    border-top: 1px solid #ddd;
+    padding-top: 8px;
+}
+
+.spell-classes {
+    margin-top: 15px;
+    font-weight: bold;
+    color: #666;
+    text-align: right;
+    font-size: 0.9em;
+}
+
+#spellList {
+    max-height: calc(100vh - 420px);
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.prepared-spell {
+    background-color: var(--druid-green-light);
+}
+
+.cast-spell {
+    background-color: #e9ecef;
+    text-decoration: line-through;
+}
+
+/* Spell slots styling */
+.spell-slot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: var(--druid-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    position: relative;
+}
+
+.spell-slot.used {
+    background-color: #6c757d;
+    opacity: 0.6;
+}
+
+.spell-slot-level {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: white;
+    color: var(--druid-green-dark);
+    border: 1px solid var(--druid-green);
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spell-slot-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
+.spell-slot-label {
+    font-size: 0.7rem;
+    margin-bottom: 3px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .statblock-ability-scores {

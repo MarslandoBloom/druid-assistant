@@ -33,6 +33,9 @@
                 <button class="nav-link" id="conjure-animals-tab" data-bs-toggle="tab" data-bs-target="#conjure-animals" type="button" role="tab" aria-controls="conjure-animals" aria-selected="false">Conjure Animals</button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="spells-tab" data-bs-toggle="tab" data-bs-target="#spells" type="button" role="tab" aria-controls="spells" aria-selected="false">Spells</button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="dice-roller-tab" data-bs-toggle="tab" data-bs-target="#dice-roller" type="button" role="tab" aria-controls="dice-roller" aria-selected="false">Dice Roller</button>
             </li>
         </ul>
@@ -456,6 +459,179 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Spells Tab -->
+            <div class="tab-pane fade" id="spells" role="tabpanel" aria-labelledby="spells-tab">
+                <div class="row m-0">
+                    <!-- Spell List Column -->
+                    <div class="col-md-6 col-lg-5 p-3 bg-light">
+                        <!-- Druid Level and Spell Info -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Druid Level</h6>
+                                <div class="d-flex gap-2">
+                                    <button id="reset-spellslots-btn" class="btn btn-sm btn-light">Reset Slots</button>
+                                    <button id="unprepare-all-btn" class="btn btn-sm btn-light">Unprepare All</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label for="druidLevel" class="form-label mb-0">Level:</label>
+                                        <select class="form-select form-select-sm" id="druidLevel" style="width: auto;">
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                            <option value="6">6</option>
+                                            <option value="7">7</option>
+                                            <option value="8">8</option>
+                                            <option value="9">9</option>
+                                            <option value="10">10</option>
+                                            <option value="11">11</option>
+                                            <option value="12">12</option>
+                                            <option value="13">13</option>
+                                            <option value="14">14</option>
+                                            <option value="15">15</option>
+                                            <option value="16">16</option>
+                                            <option value="17">17</option>
+                                            <option value="18">18</option>
+                                            <option value="19">19</option>
+                                            <option value="20">20</option>
+                                        </select>
+                                    </div>
+                                    <div id="preparedSpellsCount" class="badge bg-success">0/0 Prepared</div>
+                                </div>
+                                <div id="spellSlotTracker" class="d-flex flex-wrap gap-2">
+                                    <!-- Spell slots will be displayed here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Spell Filter Options -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white collapsible collapsed d-flex justify-content-between align-items-center" data-filter="spell-level">
+                                <h6 class="mb-0">Spell Level Filter</h6>
+                                <i class="bi bi-chevron-down"></i>
+                            </div>
+                            <div class="card-body filter-content collapsed" id="spell-level-filter-content">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="enableSpellLevelRange">
+                                        <label class="form-check-label" for="enableSpellLevelRange">
+                                            Filter by Spell Level Range
+                                        </label>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-success" id="applySpellLevelFilter">Apply</button>
+                                </div>
+                                <div class="row" id="spellLevelRangeInputs" style="display: none;">
+                                    <div class="col-6">
+                                        <label for="minSpellLevel" class="form-label">Min Level</label>
+                                        <select class="form-select form-select-sm" id="minSpellLevel" disabled>
+                                            <option value="all">Any</option>
+                                            <option value="0">Cantrip</option>
+                                            <option value="1">1st</option>
+                                            <option value="2">2nd</option>
+                                            <option value="3">3rd</option>
+                                            <option value="4">4th</option>
+                                            <option value="5">5th</option>
+                                            <option value="6">6th</option>
+                                            <option value="7">7th</option>
+                                            <option value="8">8th</option>
+                                            <option value="9">9th</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="maxSpellLevel" class="form-label">Max Level</label>
+                                        <select class="form-select form-select-sm" id="maxSpellLevel" disabled>
+                                            <option value="all">Any</option>
+                                            <option value="0">Cantrip</option>
+                                            <option value="1">1st</option>
+                                            <option value="2">2nd</option>
+                                            <option value="3">3rd</option>
+                                            <option value="4">4th</option>
+                                            <option value="5">5th</option>
+                                            <option value="6">6th</option>
+                                            <option value="7">7th</option>
+                                            <option value="8">8th</option>
+                                            <option value="9">9th</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Class Filter -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white collapsible collapsed d-flex justify-content-between align-items-center" data-filter="class">
+                                <h6 class="mb-0">Class Filter</h6>
+                                <i class="bi bi-chevron-down"></i>
+                            </div>
+                            <div class="card-body filter-content collapsed" id="class-filter-content">
+                                <div class="d-flex gap-2 flex-wrap" id="classFilterButtons">
+                                    <!-- Class filter buttons will be generated dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Search and View Options -->
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="spellSearch" placeholder="Search spells...">
+                            <button class="btn btn-outline-success" type="button" id="clearSpellSearch">Clear</button>
+                        </div>
+                        
+                        <!-- Spell List View Tabs -->
+                        <div class="mb-3">
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-success active" id="allSpellsBtn">All Spells</button>
+                                <button type="button" class="btn btn-outline-success" id="preparedSpellsBtn">Prepared</button>
+                                <button type="button" class="btn btn-outline-success" id="spellHistoryBtn">History</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Sort and Reset Options -->
+                        <div class="d-flex justify-content-between mb-3">
+                            <button class="btn btn-sm btn-outline-success" id="resetSpellFilters">Reset Filters</button>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" id="spellSortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Sort: Level (High-Low)
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="spellSortDropdown">
+                                    <li><a class="dropdown-item spell-sort-option" data-sort="name" data-direction="asc" href="#">Name (A-Z)</a></li>
+                                    <li><a class="dropdown-item spell-sort-option" data-sort="name" data-direction="desc" href="#">Name (Z-A)</a></li>
+                                    <li><a class="dropdown-item spell-sort-option" data-sort="level" data-direction="asc" href="#">Level (Low-High)</a></li>
+                                    <li><a class="dropdown-item spell-sort-option" data-sort="level" data-direction="desc" href="#">Level (High-Low)</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Spell List -->
+                        <div class="list-group" id="spellList">
+                            <!-- Spell list will be populated here -->
+                            <div class="text-center p-4">Loading spells...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Spell Description Display Column -->
+                    <div class="col-md-6 col-lg-7 p-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <button class="btn btn-sm btn-success" id="prepareSpellButton" disabled>Prepare Spell</button>
+                                    <button class="btn btn-sm btn-outline-success" id="castSpellButton" disabled>Cast Spell</button>
+                                </div>
+                            </div>
+                            <div class="card-body" id="spellDisplay">
+                                <div class="text-center p-5">
+                                    <h3>Select a spell to view its description</h3>
+                                    <p class="text-muted">The spell description will appear here</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Data Management Modal -->
@@ -471,12 +647,18 @@
                             <label for="mdFileInput" class="form-label">Upload Beast Data (Markdown)</label>
                             <input class="form-control" type="file" id="mdFileInput" accept=".md">
                         </div>
+                        <div class="mb-3">
+                            <label for="spellMdFileInput" class="form-label">Upload Spell Data (Markdown)</label>
+                            <input class="form-control" type="file" id="spellMdFileInput" accept=".md">
+                        </div>
                         <div class="alert alert-warning">
                             <p>This assistant comes by default with all of the beasts that the Druid has seen in the forest, grassland and hill ecosystem from CR0 to CR6, plus a couple of other beasts the Druid has seen on his adventures.</p>
                             
+                            <p>This assistant also includes a subset of Druid spells for reference and spell management.</p>
+                            
                             <p>You can upload and download data to this assistant. Source new data from the 2014 version of 5etools in the .md format via the print view. https://2014.5e.tools/</p>
                             
-                            <p><strong>Warning!</strong> Resetting the data will clear all beasts and favourites.</p>
+                            <p><strong>Warning!</strong> Resetting the data will clear all beasts, spells, and favorites.</p>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -514,6 +696,7 @@
     <script src="js/data.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/spells.js"></script>
     <script src="js/dice-roller.js"></script>
     <script>
         // Register service worker for PWA support
