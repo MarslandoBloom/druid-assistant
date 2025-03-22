@@ -1360,49 +1360,99 @@ const DataManager = (function() {
                 'Velociraptor',
                 'Wolf'
             ];
-            const defaultFavorites = [];
             
-            // Get all beasts
-            getAllBeasts().then(beasts => {
-                // Find beasts that match our default names (case insensitive)
-                const defaultBeasts = [];
-                
-                defaultNames.forEach(name => {
-                    const beast = beasts.find(b => b.name.toLowerCase() === name.toLowerCase());
-                    if (beast) {
-                        defaultBeasts.push(beast);
-                    } else {
-                        console.log(`Default conjure beast not found: ${name}`);
-                    }
-                });
-                
-                // Add all default beasts as favorites
-                const favTransaction = db.transaction([CONJURE_FAVORITES_STORE], 'readwrite');
-                const favStore = favTransaction.objectStore(CONJURE_FAVORITES_STORE);
-                
-                defaultBeasts.forEach(beast => {
-                    const favorite = {
-                        id: beast.id,
-                        dateAdded: new Date()
+            // First make sure all the default beasts exist in the database
+            // This addresses cases where some beasts might be missing
+            ensureSutureflyExists()
+                .then(() => getAllBeasts())
+                .then(beasts => {
+                    // First, clear existing favorites (for consistent results across browsers)
+                    const clearTransaction = db.transaction([CONJURE_FAVORITES_STORE], 'readwrite');
+                    const clearStore = clearTransaction.objectStore(CONJURE_FAVORITES_STORE);
+                    const clearRequest = clearStore.clear();
+                    
+                    // After clearing, add all the default beasts
+                    clearRequest.onsuccess = () => {
+                        // Find beasts that match our default names (case insensitive)
+                        const defaultBeasts = [];
+                        const missingBeasts = [];
+                        
+                        defaultNames.forEach(name => {
+                            // Try multiple matching approaches for more robustness
+                            const beast = beasts.find(b => 
+                                b.name && (b.name.toLowerCase() === name.toLowerCase() || // Exact match
+                                b.name.toLowerCase().includes(name.toLowerCase())) || // Partial match
+                                (b.id && b.id.toLowerCase() === name.toLowerCase().replace(/\s+/g, '-')) // ID match
+                            );
+                            
+                            if (beast) {
+                                defaultBeasts.push(beast);
+                            } else {
+                                console.warn(`Default conjure beast not found: ${name}`);
+                                missingBeasts.push(name);
+                            }
+                        });
+                        
+                        console.log(`Adding ${defaultBeasts.length} default conjure favorites: ${defaultBeasts.map(b => b.name).join(', ')}`);
+                        
+                        // Add all default beasts as favorites
+                        const favTransaction = db.transaction([CONJURE_FAVORITES_STORE], 'readwrite');
+                        const favStore = favTransaction.objectStore(CONJURE_FAVORITES_STORE);
+                        
+                        // Keep track of how many beasts we've successfully added
+                        let successCount = 0;
+                        
+                        defaultBeasts.forEach(beast => {
+                            try {
+                                const favorite = {
+                                    id: beast.id,
+                                    dateAdded: new Date()
+                                };
+                                
+                                const request = favStore.put(favorite);
+                                
+                                request.onsuccess = () => {
+                                    successCount++;
+                                };
+                                
+                                request.onerror = (e) => {
+                                    console.error(`Error adding ${beast.name} to conjure favorites:`, e.target.error);
+                                };
+                            } catch (e) {
+                                console.error(`Exception adding ${beast.name} to conjure favorites:`, e);
+                            }
+                        });
+                        
+                        favTransaction.oncomplete = () => {
+                            console.log(`Successfully added ${successCount} out of ${defaultBeasts.length} default conjure favorites`);
+                            
+                            // Return the beasts we successfully added
+                            getAllConjureFavorites()
+                                .then(favorites => {
+                                    resolve(favorites);
+                                })
+                                .catch(error => {
+                                    console.error('Error getting final conjure favorites list:', error);
+                                    // Still resolve with the beasts we tried to add
+                                    resolve(defaultBeasts);
+                                });
+                        };
+                        
+                        favTransaction.onerror = (event) => {
+                            console.error('Error in conjure favorites transaction:', event.target.error);
+                            // Still try to resolve with the default beasts
+                            resolve(defaultBeasts);
+                        };
                     };
                     
-                    favStore.put(favorite);
-                    defaultFavorites.push(beast);
+                    clearRequest.onerror = (event) => {
+                        console.error('Error clearing conjure favorites:', event.target.error);
+                        reject(event.target.error);
+                    };
+                }).catch(error => {
+                    console.error('Error setting up default conjure favorites:', error);
+                    reject(error);
                 });
-                
-                favTransaction.oncomplete = () => {
-                    console.log(`Added ${defaultBeasts.length} default conjure favorites`);
-                    resolve(defaultFavorites);
-                };
-                
-                favTransaction.onerror = (event) => {
-                    console.error('Error adding default conjure favorites:', event.target.error);
-                    resolve(defaultFavorites); // Still return the beasts even if we couldn't save them as favorites
-                };
-            }).catch(error => {
-                console.error('Error getting beasts for default conjure favorites:', error);
-                reject(error);
-            });
         });
     }
     
@@ -1499,6 +1549,160 @@ const DataManager = (function() {
         });
     }
     
+    /**
+     * Ensures the Suturefly beast exists in the database
+     * This is a special case to fix the issue with Suturefly not appearing in favorites
+     * @returns {Promise} Resolves when complete
+     */
+    /**
+     * Ensures the Suturefly beast exists in the database and as a favorite without disturbing other favorites
+     * @returns {Promise} Resolves when complete
+     */
+    function ensureSutureflyExists() {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            console.log('🔍 DEBUG: Checking if Suturefly exists in database...');
+            
+            // Get all beasts first
+            getAllBeasts().then(allBeasts => {
+                console.log(`🔍 DEBUG: Found ${allBeasts.length} total beasts in database`);
+                
+                // Try to find Suturefly by name (case insensitive)
+                const existingSuturefly = allBeasts.find(beast => 
+                    beast.name && beast.name.toLowerCase() === 'suturefly'
+                );
+                
+                // Set up a chain of promises to handle the rest of the logic
+                let chain;
+                
+                if (existingSuturefly) {
+                    console.log('✅ DEBUG: Suturefly already exists in database:', existingSuturefly);
+                    chain = Promise.resolve(existingSuturefly);
+                } else {
+                    // Create the Suturefly beast
+                    console.log('🔧 DEBUG: Creating Suturefly beast in database');
+                    const suturefly = {
+                        id: 'suturefly',
+                        name: 'Suturefly',
+                        size: 'Tiny',
+                        type: 'beast',
+                        alignment: 'unaligned',
+                        environment: 'forest, grassland, hills',
+                        ac: '13 (natural armor)',
+                        hp: '2 (1d4)',
+                        speed: '10 ft., fly 40 ft.',
+                        abilities: {
+                            str: '1 (-5)',
+                            dex: '16 (+3)',
+                            con: '10 (+0)',
+                            int: '2 (-4)',
+                            wis: '12 (+1)',
+                            cha: '4 (-3)'
+                        },
+                        skills: 'Stealth +5',
+                        senses: 'darkvision 30 ft., passive Perception 11',
+                        languages: '-',
+                        cr: '0',
+                        xp: '10',
+                        traits: [
+                            {
+                                name: 'Blood Scent',
+                                desc: 'The suturefly has advantage on Wisdom (Perception) checks to detect creatures that don\'t have all their hit points.'
+                            },
+                            {
+                                name: 'Swarming',
+                                desc: 'Up to four sutureflies can share the same space at the same time.'
+                            }
+                        ],
+                        actions: [
+                            {
+                                name: 'Proboscis',
+                                desc: 'Melee Weapon Attack: +5 to hit, reach 0 ft., one creature. Hit: 1 piercing damage, and the suturefly locks into place and begins draining blood. While attached, the suturefly doesn\'t attack. Instead, at the start of each of the suturefly\'s turns, the target loses 1 hit point due to blood loss. The suturefly can detach itself by spending 5 feet of its movement. It does so after it drains 4 hit points of blood or the target dies. A creature, including the target, can use its action to detach the suturefly.'
+                            }
+                        ]
+                    };
+                    
+                    // Save the beast in a promise chain
+                    chain = new Promise((resolveSave, rejectSave) => {
+                        const writeTransaction = db.transaction([BEAST_STORE], 'readwrite');
+                        const writeStore = writeTransaction.objectStore(BEAST_STORE);
+                        const writeRequest = writeStore.put(suturefly);
+                        
+                        writeRequest.onsuccess = () => {
+                            console.log('✅ DEBUG: Successfully added Suturefly to database');
+                            resolveSave(suturefly);
+                        };
+                        
+                        writeRequest.onerror = (event) => {
+                            console.error('❌ DEBUG: Error adding Suturefly to database:', event.target.error);
+                            rejectSave(event.target.error);
+                        };
+                    });
+                }
+                
+                // After Suturefly exists in the database, ensure it's in the conjure favorites
+                // WITHOUT disrupting any other favorites
+                chain.then(sutureflyBeast => {
+                    return new Promise((resolveFav, rejectFav) => {
+                        // First check if it's already in favorites
+                        getAllConjureFavorites().then(favorites => {
+                            // Check if Suturefly is already in favorites
+                            const sutureflyFav = favorites.find(beast => 
+                                beast.name && beast.name.toLowerCase() === 'suturefly'
+                            );
+                            
+                            if (sutureflyFav) {
+                                console.log('✅ DEBUG: Suturefly already in conjure favorites');
+                                resolveFav();
+                                return;
+                            }
+                            
+                            // Suturefly is not in favorites, so add it
+                            console.log('🔧 DEBUG: Adding Suturefly to conjure favorites');
+                            
+                            // Add to favorites without affecting other favorites
+                            const writeTransaction = db.transaction([CONJURE_FAVORITES_STORE], 'readwrite');
+                            const writeStore = writeTransaction.objectStore(CONJURE_FAVORITES_STORE);
+                            
+                            const favorite = {
+                                id: sutureflyBeast.id,
+                                dateAdded: new Date()
+                            };
+                            
+                            const writeRequest = writeStore.put(favorite); // Using put instead of add to avoid constraint errors
+                            
+                            writeRequest.onsuccess = () => {
+                                console.log('✅ DEBUG: Successfully added Suturefly to conjure favorites');
+                                resolveFav();
+                            };
+                            
+                            writeRequest.onerror = (event) => {
+                                console.error('❌ DEBUG: Error adding Suturefly to conjure favorites:', event.target.error);
+                                rejectFav(event.target.error);
+                            };
+                        }).catch(err => {
+                            console.error('❌ DEBUG: Error checking conjure favorites:', err);
+                            rejectFav(err);
+                        });
+                    });
+                }).then(() => {
+                    // Finish the main promise
+                    resolve();
+                }).catch(error => {
+                    console.error('❌ DEBUG: Error in Suturefly setup chain:', error);
+                    reject(error);
+                });
+            }).catch(error => {
+                console.error('❌ DEBUG: Error getting all beasts:', error);
+                reject(error);
+            });
+        });
+    }
+    
     // Public API
     return {
         initDatabase,
@@ -1524,6 +1728,8 @@ const DataManager = (function() {
         isConjureFavorite,
         getAllConjureFavorites,
         ensureDefaultConjureFavorites,
+        // Suturefly-specific method
+        ensureSutureflyExists,
         // Other methods
         clearAllData,
         loadBeastData,

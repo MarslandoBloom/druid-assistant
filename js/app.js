@@ -179,6 +179,19 @@ document.addEventListener('DOMContentLoaded', function() {
         DataManager.initDatabase()
             .then(() => {
                 console.log('Database initialized, checking for beasts...');
+                
+                // First ensure Suturefly exists
+                return DataManager.ensureSutureflyExists().catch(err => {
+                    console.warn('Warning: Error ensuring Suturefly exists:', err);
+                });
+            })
+            .then(() => {
+                // Next ensure all default conjure favorites are set up correctly
+                return DataManager.ensureDefaultConjureFavorites().catch(err => {
+                    console.warn('Warning: Error setting up default conjure favorites:', err);
+                });
+            })
+            .then(() => {
                 // Check if we have beasts in the database
                 return DataManager.getAllBeasts();
             })
