@@ -121,48 +121,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // DOM elements
     const elements = {
-        // Tabs and navigation
-        mainTabs: document.getElementById('mainTabs'),
-        statblockTab: document.getElementById('statblock-tab'),
-        wildshapeTab: document.getElementById('wildshape-tab'),
-        conjureAnimalsTab: document.getElementById('conjure-animals-tab'),
-        
-        // Beast list and filtering
-        beastSearch: document.getElementById('beastSearch'),
-        clearSearch: document.getElementById('clearSearch'),
-        enableCRRange: document.getElementById('enableCRRange'),
-        crRangeInputs: document.getElementById('crRangeInputs'),
-        minCR: document.getElementById('minCR'),
-        maxCR: document.getElementById('maxCR'),
-        applyCRFilter: document.getElementById('applyCRFilter'),
-        sizeFilters: document.querySelectorAll('.size-filter'),
-        showWildshapeFavorites: document.getElementById('showWildshapeFavorites'),
-        showConjureFavorites: document.getElementById('showConjureFavorites'),
-        backToListBtn: document.getElementById('backToListBtn'),
-        resetFilters: document.getElementById('resetFilters'),
-        
-        // Action buttons
-        wildshapeButton: document.getElementById('wildshapeButton'),
-        conjureAnimalsButton: document.getElementById('conjureAnimalsButton'),
-        wildshapeFavoriteButton: document.getElementById('wildshapeFavoriteButton'),
-        conjureFavoriteButton: document.getElementById('conjureFavoriteButton'),
+    // Tabs and navigation
+    mainTabs: document.getElementById('mainTabs'),
+    statblockTab: document.getElementById('statblock-tab'),
+    wildshapeTab: document.getElementById('wildshape-tab'),
+    conjureAnimalsTab: document.getElementById('conjure-animals-tab'),
+    
+    // Beast list and filtering
+    beastSearch: document.getElementById('beastSearch'),
+    clearSearch: document.getElementById('clearSearch'),
+    enableCRRange: document.getElementById('enableCRRange'),
+    crRangeInputs: document.getElementById('crRangeInputs'),
+    minCR: document.getElementById('minCR'),
+    maxCR: document.getElementById('maxCR'),
+    applyCRFilter: document.getElementById('applyCRFilter'),
+    sizeFilters: document.querySelectorAll('.size-filter'),
+    showWildshapeFavorites: document.getElementById('showWildshapeFavorites'),
+    showConjureFavorites: document.getElementById('showConjureFavorites'),
+    backToListBtn: document.getElementById('backToListBtn'),
+    resetFilters: document.getElementById('resetFilters'),
+    
+    // Action buttons
+    wildshapeButton: document.getElementById('wildshapeButton'),
+    conjureAnimalsButton: document.getElementById('conjureAnimalsButton'),
+    wildshapeFavoriteButton: document.getElementById('wildshapeFavoriteButton'),
+    conjureFavoriteButton: document.getElementById('conjureFavoriteButton'),
 
-        // Conjure Animals tab
-        advantageSelect: document.getElementById('advantage-select'),
-        groupAttackBtn: document.getElementById('group-attack-btn'),
-        groupDamageBtn: document.getElementById('group-damage-btn'),
-        totalGroupDamage: document.getElementById('total-group-damage'),
-        conjuredAnimalsList: document.getElementById('conjured-animals-list'),
-        conjureStatblock: document.getElementById('conjure-statblock'),
-        battlefield: document.getElementById('battlefield'),
-        addEnemyBtn: document.getElementById('add-enemy-btn'),
-        
-        // Data management
-        mdFileInput: document.getElementById('mdFileInput'),
-        uploadDataBtn: document.getElementById('uploadDataBtn'),
-        downloadDataBtn: document.getElementById('downloadDataBtn'),
+    // Conjure Animals tab
+    advantageSelect: document.getElementById('advantage-select'),
+    groupAttackBtn: document.getElementById('group-attack-btn'),
+    groupDamageBtn: document.getElementById('group-damage-btn'),
+    totalGroupDamage: document.getElementById('total-group-damage'),
+    conjuredAnimalsList: document.getElementById('conjured-animals-list'),
+    conjureStatblock: document.getElementById('conjure-statblock'),
+    battlefield: document.getElementById('battlefield'),
+    addEnemyBtn: document.getElementById('add-enemy-btn'),
+    
+    // Data management
+    mdFileInput: document.getElementById('mdFileInput'),
+    spellMdFileInput: document.getElementById('spellMdFileInput'),
+    uploadDataBtn: document.getElementById('uploadDataBtn'),
+    downloadDataBtn: document.getElementById('downloadDataBtn'),
         resetDataBtn: document.getElementById('resetDataBtn')
-    };
+        };
     
     // Store available CR values
     let availableCRs = [];
@@ -217,6 +218,43 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set up event listeners
         setupEventListeners();
+
+    // Spell file input
+    document.getElementById('spellMdFileInput').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const markdownText = e.target.result;
+                DataManager.loadSpellData(markdownText)
+                    .then(count => {
+                        showFormattedAlert('Success', `Successfully loaded ${count} spells!`);
+                        
+                        // Update spell list if SpellManager is available
+                        if (window.SpellManager && typeof window.SpellManager.displaySpellList === 'function') {
+                            window.SpellManager.displaySpellList();
+                        }
+                        
+                        // Close the modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('dataModal'));
+                        modal.hide();
+                        
+                        // Reset the file input
+                        event.target.value = '';
+                    })
+                    .catch(error => {
+                        console.error('Error loading spell data:', error);
+                        showFormattedAlert('Error', 'Error loading spell data: ' + error);
+                    });
+            };
+            
+            reader.onerror = function() {
+                showFormattedAlert('Error', 'Error reading file');
+            };
+            
+            reader.readAsText(file);
+        }
+    });
     }
     
     /**

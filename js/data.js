@@ -36,11 +36,16 @@ const DataManager = (function() {
     }
     // Database configuration
     const DB_NAME = 'DruidsAssistantDB';
-    const DB_VERSION = 2;
+    const DB_VERSION = 3;
     const BEAST_STORE = 'beasts';
-    const FAVORITES_STORE = 'favorites';
-    const WILDSHAPE_FAVORITES_STORE = 'wildshapeFavorites';
-    const CONJURE_FAVORITES_STORE = 'conjureFavorites';
+const FAVORITES_STORE = 'favorites';
+const WILDSHAPE_FAVORITES_STORE = 'wildshapeFavorites';
+const CONJURE_FAVORITES_STORE = 'conjureFavorites';
+
+// New constants for spell stores
+const SPELL_STORE = 'spells';
+const PREPARED_SPELLS_STORE = 'preparedSpells';
+const SPELL_SLOTS_STORE = 'spellSlots';
     
     // IndexedDB instance
     let db = null;
@@ -95,6 +100,11 @@ const DataManager = (function() {
                         // We'll handle the migration after the upgrade completes
                         console.log('Will migrate favorites to separate stores');
                     }
+                }
+                
+                // Add spell stores (new version 3)
+                if (oldVersion < 3) {
+                    addSpellStores(db, oldVersion);
                 }
                 
                 console.log('Database setup complete');
@@ -1197,23 +1207,43 @@ const DataManager = (function() {
                 return;
             }
             
-            const transaction = db.transaction([BEAST_STORE, FAVORITES_STORE], 'readwrite');
+            const transaction = db.transaction(
+                [BEAST_STORE, FAVORITES_STORE, WILDSHAPE_FAVORITES_STORE, CONJURE_FAVORITES_STORE, 
+                 SPELL_STORE, PREPARED_SPELLS_STORE, SPELL_SLOTS_STORE], 'readwrite');
+            
             const beastStore = transaction.objectStore(BEAST_STORE);
             const favStore = transaction.objectStore(FAVORITES_STORE);
+            const wildshapeFavStore = transaction.objectStore(WILDSHAPE_FAVORITES_STORE);
+            const conjureFavStore = transaction.objectStore(CONJURE_FAVORITES_STORE);
+            const spellStore = transaction.objectStore(SPELL_STORE);
+            const preparedSpellsStore = transaction.objectStore(PREPARED_SPELLS_STORE);
+            const spellSlotsStore = transaction.objectStore(SPELL_SLOTS_STORE);
             
             const beastClearRequest = beastStore.clear();
             const favClearRequest = favStore.clear();
+            const wildshapeFavClearRequest = wildshapeFavStore.clear();
+            const conjureFavClearRequest = conjureFavStore.clear();
+            const spellClearRequest = spellStore.clear();
+            const preparedSpellsClearRequest = preparedSpellsStore.clear();
+            const spellSlotsClearRequest = spellSlotsStore.clear();
             
             let clearCount = 0;
+            const totalStores = 7; // Updated to include spell-related stores
+            
             const checkComplete = () => {
                 clearCount++;
-                if (clearCount === 2) {
+                if (clearCount === totalStores) {
                     resolve();
                 }
             };
             
             beastClearRequest.onsuccess = checkComplete;
             favClearRequest.onsuccess = checkComplete;
+            wildshapeFavClearRequest.onsuccess = checkComplete;
+            conjureFavClearRequest.onsuccess = checkComplete;
+            spellClearRequest.onsuccess = checkComplete;
+            preparedSpellsClearRequest.onsuccess = checkComplete;
+            spellSlotsClearRequest.onsuccess = checkComplete;
             
             transaction.onerror = (event) => {
                 console.error('Transaction error:', event.target.error);
@@ -1703,6 +1733,750 @@ const DataManager = (function() {
         });
     }
     
+    /**
+     * Adds spell stores to the database during initialization
+     * @param {IDBDatabase} db - The database object
+     * @param {number} oldVersion - Previous database version
+     */
+    function addSpellStores(db, oldVersion) {
+        if (!db.objectStoreNames.contains(SPELL_STORE)) {
+            const spellStore = db.createObjectStore(SPELL_STORE, { keyPath: 'id' });
+            spellStore.createIndex('name', 'name', { unique: false });
+            spellStore.createIndex('level', 'level', { unique: false });
+            spellStore.createIndex('school', 'school', { unique: false });
+        }
+        
+        if (!db.objectStoreNames.contains(PREPARED_SPELLS_STORE)) {
+            db.createObjectStore(PREPARED_SPELLS_STORE, { keyPath: 'id' });
+        }
+        
+        if (!db.objectStoreNames.contains(SPELL_SLOTS_STORE)) {
+            db.createObjectStore(SPELL_SLOTS_STORE, { keyPath: 'level' });
+        }
+    }
+
+    /**
+     * Parses markdown to extract spell data
+     * @param {string} markdown - Markdown text containing spell data
+     * @returns {Array} Array of spell objects
+     */
+    function parseSpellMarkdown(markdown) {
+        const spells = [];
+        let currentSpell = null;
+        
+        // Split markdown into lines
+        const lines = markdown.split('\n');
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // Check for spell header (starts with '#### ')
+            if (line.startsWith('#### ')) {
+                // If we were processing a spell, save it
+                if (currentSpell) {
+                    spells.push(currentSpell);
+                }
+                
+                // Start a new spell
+                const name = line.substring(5).trim();
+                const id = name.toLowerCase()
+                    .replace(/[^a-z0-9]/g, '-')
+                    .replace(/-+/g, '-')
+                    .replace(/^-|-$/g, '');
+                
+                currentSpell = {
+                    id: id,
+                    name: name,
+                    description: '',
+                    components: [],
+                    classes: []
+                };
+                continue;
+            }
+            
+            // If not processing a spell, skip
+            if (!currentSpell) continue;
+            
+            // Check for spell level and school line (e.g., '*1st-level abjuration*')
+            if (line.startsWith('*') && line.endsWith('*')) {
+                const levelSchoolText = line.substring(1, line.length - 1).trim();
+                
+                // Parse level
+                if (levelSchoolText.includes('cantrip')) {
+                    currentSpell.level = 0;
+                    currentSpell.levelText = 'Cantrip';
+                } else {
+                    const levelMatch = levelSchoolText.match(/(\d+)(st|nd|rd|th)-level/);
+                    if (levelMatch) {
+                        currentSpell.level = parseInt(levelMatch[1]);
+                        currentSpell.levelText = `${levelMatch[1]}${levelMatch[2]}-level`;
+                    }
+                }
+                
+                // Parse school
+                const schoolMatch = levelSchoolText.match(/(abjuration|conjuration|divination|enchantment|evocation|illusion|necromancy|transmutation)/i);
+                if (schoolMatch) {
+                    currentSpell.school = schoolMatch[1].toLowerCase();
+                    // Capitalize first letter for display
+                    currentSpell.schoolDisplay = schoolMatch[1].charAt(0).toUpperCase() + schoolMatch[1].slice(1);
+                }
+                continue;
+            }
+            
+            // Check for end of basic info section
+            if (line === '---') {
+                // The next lines will be the description
+                let descriptionLines = [];
+                let j = i + 1;
+                
+                while (j < lines.length && 
+                      !lines[j].trim().startsWith('**Classes:**') && 
+                      !lines[j].trim().startsWith('#### ')) {
+                    if (lines[j].trim().length > 0) {
+                        descriptionLines.push(lines[j].trim());
+                    }
+                    j++;
+                }
+                
+                if (descriptionLines.length > 0) {
+                    currentSpell.description = descriptionLines.join('\n');
+                }
+                
+                // Update i to continue from where we left off
+                i = j - 1;
+                continue;
+            }
+            
+            // Check for casting time, range, components, duration
+            if (line.startsWith('- **Casting Time:**')) {
+                currentSpell.castingTime = line.substring(18).trim();
+            }
+            else if (line.startsWith('- **Range:**')) {
+                currentSpell.range = line.substring(12).trim();
+            }
+            else if (line.startsWith('- **Components:**')) {
+                const componentsText = line.substring(17).trim();
+                currentSpell.componentsText = componentsText;
+                
+                // Parse individual components
+                if (componentsText.includes('V')) currentSpell.components.push('verbal');
+                if (componentsText.includes('S')) currentSpell.components.push('somatic');
+                if (componentsText.includes('M')) {
+                    currentSpell.components.push('material');
+                    // Extract material components details
+                    const materialMatch = componentsText.match(/M\s*\((.*?)\)/);
+                    if (materialMatch) {
+                        currentSpell.materialComponents = materialMatch[1];
+                    }
+                }
+            }
+            else if (line.startsWith('- **Duration:**')) {
+                currentSpell.duration = line.substring(15).trim();
+            }
+            
+            // Check for classes
+            if (line.startsWith('**Classes:**')) {
+                const classesText = line.substring(11).trim();
+                currentSpell.classes = classesText.split(', ').map(c => c.trim());
+                
+                // Check if this is a Druid spell
+                currentSpell.isDruidSpell = currentSpell.classes.includes('Druid');
+            }
+        }
+        
+        // Add the last spell if there is one
+        if (currentSpell) {
+            spells.push(currentSpell);
+        }
+        
+        return spells;
+    }
+
+    /**
+     * Saves spells to IndexedDB
+     * @param {Array} spells - Array of spell objects to save
+     * @returns {Promise} Resolves when save is complete
+     */
+    function saveSpells(spells) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([SPELL_STORE], 'readwrite');
+            const store = transaction.objectStore(SPELL_STORE);
+            
+            let savedCount = 0;
+            
+            transaction.oncomplete = () => {
+                console.log(`Saved ${savedCount} spells`);
+                resolve(savedCount);
+            };
+            
+            transaction.onerror = (event) => {
+                console.error('Transaction error:', event.target.error);
+                reject('Error saving spells');
+            };
+            
+            spells.forEach(spell => {
+                try {
+                    const request = store.put(spell);
+                    request.onsuccess = () => {
+                        savedCount++;
+                    };
+                    request.onerror = (event) => {
+                        console.error(`Error saving spell ${spell.name}:`, event.target.error);
+                    };
+                } catch (e) {
+                    console.error(`Exception while saving spell ${spell.name}:`, e);
+                }
+            });
+        });
+    }
+
+    /**
+     * Gets all spells from IndexedDB
+     * @returns {Promise} Resolves with array of spells
+     */
+    function getAllSpells() {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([SPELL_STORE], 'readonly');
+            const store = transaction.objectStore(SPELL_STORE);
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                console.log(`Retrieved ${request.result.length} spells from database`);
+                resolve(request.result);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error getting spells');
+            };
+        });
+    }
+
+    /**
+     * Gets spells by filtering criteria
+     * @param {Object} filters - Filter criteria (name, level, school, prepared)
+     * @returns {Promise} Resolves with array of matching spells
+     */
+    function getFilteredSpells(filters = {}) {
+        return new Promise((resolve, reject) => {
+            // Get all spells and prepared spells in parallel
+            Promise.all([
+                getAllSpells(),
+                getSpellsMetadata('preparedSpells')
+            ])
+            .then(([spells, preparedSpells]) => {
+                let filtered = spells;
+                
+                // Filter by name (case-insensitive partial match)
+                if (filters.name) {
+                    const nameLower = filters.name.toLowerCase();
+                    filtered = filtered.filter(spell => 
+                        spell.name.toLowerCase().includes(nameLower)
+                    );
+                }
+                
+                // Filter by level
+                if (filters.level && filters.level !== 'all') {
+                    const levelValue = filters.level === 'cantrip' ? 0 : parseInt(filters.level);
+                    filtered = filtered.filter(spell => spell.level === levelValue);
+                }
+                
+                // Filter by school
+                if (filters.school && filters.school !== 'all') {
+                    filtered = filtered.filter(spell => spell.school === filters.school.toLowerCase());
+                }
+                
+                // Filter by prepared status
+                if (filters.prepared) {
+                    const preparedIds = new Set(Object.keys(preparedSpells));
+                    filtered = filtered.filter(spell => preparedIds.has(spell.id));
+                }
+                
+                // Filter Druid spells only
+                if (filters.druidsOnly) {
+                    filtered = filtered.filter(spell => spell.isDruidSpell);
+                }
+                
+                resolve(filtered);
+            })
+            .catch(error => {
+                reject(error);
+            });
+        });
+    }
+
+    /**
+     * Gets a single spell by ID
+     * @param {string} id - Spell ID to retrieve
+     * @returns {Promise} Resolves with spell object
+     */
+    function getSpellById(id) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([SPELL_STORE], 'readonly');
+            const store = transaction.objectStore(SPELL_STORE);
+            const request = store.get(id);
+            
+            request.onsuccess = () => {
+                if (request.result) {
+                    resolve(request.result);
+                } else {
+                    reject(`Spell with ID ${id} not found`);
+                }
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error getting spell');
+            };
+        });
+    }
+
+    /**
+     * Manages prepared spells (toggle preparation state)
+     * @param {string} spellId - ID of spell to toggle
+     * @returns {Promise} Resolves with boolean indicating if spell is now prepared
+     */
+    function togglePreparedSpell(spellId) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            isPreparedSpell(spellId)
+                .then(isPrepared => {
+                    const transaction = db.transaction([PREPARED_SPELLS_STORE], 'readwrite');
+                    const store = transaction.objectStore(PREPARED_SPELLS_STORE);
+                    
+                    if (isPrepared) {
+                        // Remove from prepared spells
+                        const request = store.delete(spellId);
+                        
+                        request.onsuccess = () => {
+                            resolve(false); // Not prepared anymore
+                        };
+                        
+                        request.onerror = (event) => {
+                            console.error('Error removing prepared spell:', event.target.error);
+                            reject('Error removing prepared spell');
+                        };
+                    } else {
+                        // Add to prepared spells
+                        const preparedSpell = {
+                            id: spellId,
+                            dateAdded: new Date()
+                        };
+                        
+                        const request = store.put(preparedSpell);
+                        
+                        request.onsuccess = () => {
+                            resolve(true); // Now prepared
+                        };
+                        
+                        request.onerror = (event) => {
+                            console.error('Error adding prepared spell:', event.target.error);
+                            reject('Error adding prepared spell');
+                        };
+                    }
+                })
+                .catch(error => {
+                    reject(error);
+                });
+        });
+    }
+
+    /**
+     * Checks if a spell is prepared
+     * @param {string} spellId - ID of spell to check
+     * @returns {Promise} Resolves with boolean
+     */
+    function isPreparedSpell(spellId) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([PREPARED_SPELLS_STORE], 'readonly');
+            const store = transaction.objectStore(PREPARED_SPELLS_STORE);
+            const request = store.get(spellId);
+            
+            request.onsuccess = () => {
+                resolve(!!request.result);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error checking prepared spell status');
+            };
+        });
+    }
+
+    /**
+     * Gets all prepared spells
+     * @returns {Promise} Resolves with array of prepared spell objects
+     */
+    function getAllPreparedSpells() {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            // Get prepared spell IDs and full spell details
+            Promise.all([
+                getSpellsMetadata('preparedSpells'),
+                getAllSpells()
+            ])
+            .then(([preparedSpellsMap, allSpells]) => {
+                const preparedIds = Object.keys(preparedSpellsMap);
+                const preparedSpells = allSpells.filter(spell => preparedIds.includes(spell.id));
+                resolve(preparedSpells);
+            })
+            .catch(error => {
+                reject(error);
+            });
+        });
+    }
+
+    /**
+     * Gets spell metadata (like preparation status)
+     * @param {string} storeType - Type of metadata store to use ('preparedSpells')
+     * @returns {Promise} Resolves with object mapping spell IDs to metadata
+     */
+    function getSpellsMetadata(storeType) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            let storeName;
+            if (storeType === 'preparedSpells') {
+                storeName = PREPARED_SPELLS_STORE;
+            } else {
+                reject('Invalid metadata store type');
+                return;
+            }
+            
+            const transaction = db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                // Convert array to object with spell IDs as keys
+                const metadata = {};
+                request.result.forEach(item => {
+                    metadata[item.id] = item;
+                });
+                
+                resolve(metadata);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject(`Error getting ${storeType}`);
+            };
+        });
+    }
+
+    /**
+     * Initialize or update spell slot configuration
+     * @param {Object} config - Spell slot configuration by level
+     * @returns {Promise} Resolves when complete
+     */
+    function updateSpellSlotConfig(config) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([SPELL_SLOTS_STORE], 'readwrite');
+            const store = transaction.objectStore(SPELL_SLOTS_STORE);
+            
+            // First clear existing data
+            const clearRequest = store.clear();
+            
+            clearRequest.onsuccess = () => {
+                // Then add each level's configuration
+                for (const [level, slots] of Object.entries(config)) {
+                    const slotConfig = {
+                        level: parseInt(level),
+                        totalSlots: slots,
+                        usedSlots: 0,
+                        dateModified: new Date()
+                    };
+                    
+                    store.put(slotConfig);
+                }
+            };
+            
+            transaction.oncomplete = () => {
+                resolve();
+            };
+            
+            transaction.onerror = (event) => {
+                console.error('Transaction error:', event.target.error);
+                reject('Error updating spell slot configuration');
+            };
+        });
+    }
+
+    /**
+     * Get current spell slot status
+     * @returns {Promise} Resolves with spell slot configuration
+     */
+    function getSpellSlotStatus() {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([SPELL_SLOTS_STORE], 'readonly');
+            const store = transaction.objectStore(SPELL_SLOTS_STORE);
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                // Convert to object with level as key
+                const slotStatus = {};
+                request.result.forEach(slot => {
+                    slotStatus[slot.level] = {
+                        totalSlots: slot.totalSlots,
+                        usedSlots: slot.usedSlots,
+                        remainingSlots: slot.totalSlots - slot.usedSlots
+                    };
+                });
+                
+                // If no configuration is found, create a default one
+                if (Object.keys(slotStatus).length === 0) {
+                    const defaultConfig = createDefaultSpellSlotConfig();
+                    updateSpellSlotConfig(defaultConfig)
+                        .then(() => {
+                            // Return the default config
+                            Object.keys(defaultConfig).forEach(level => {
+                                slotStatus[level] = {
+                                    totalSlots: defaultConfig[level],
+                                    usedSlots: 0,
+                                    remainingSlots: defaultConfig[level]
+                                };
+                            });
+                            resolve(slotStatus);
+                        })
+                        .catch(error => {
+                            reject(error);
+                        });
+                } else {
+                    resolve(slotStatus);
+                }
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error getting spell slot status');
+            };
+        });
+    }
+
+    /**
+     * Update usage status of a spell slot
+     * @param {number} level - Spell slot level
+     * @param {number} slotIndex - Index of the slot to toggle (1-based)
+     * @returns {Promise} Resolves with new slot status
+     */
+    function toggleSpellSlot(level, slotIndex) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([SPELL_SLOTS_STORE], 'readwrite');
+            const store = transaction.objectStore(SPELL_SLOTS_STORE);
+            const request = store.get(level);
+            
+            request.onsuccess = () => {
+                let slotConfig = request.result;
+                
+                // If no config exists for this level, create a default one
+                if (!slotConfig) {
+                    const defaultSlots = level <= 9 ? (10 - level) : 0;
+                    slotConfig = {
+                        level: level,
+                        totalSlots: defaultSlots,
+                        usedSlots: 0,
+                        dateModified: new Date()
+                    };
+                }
+                
+                // Toggle the slot status
+                const isUsed = slotIndex <= slotConfig.usedSlots;
+                
+                if (isUsed) {
+                    // If the slot is used, free it
+                    slotConfig.usedSlots--;
+                } else {
+                    // If the slot is free, use it (but don't exceed totalSlots)
+                    if (slotConfig.usedSlots < slotConfig.totalSlots) {
+                        slotConfig.usedSlots++;
+                    }
+                }
+                
+                slotConfig.dateModified = new Date();
+                
+                // Save the updated config
+                store.put(slotConfig);
+                
+                // Return the new status
+                const newStatus = {
+                    totalSlots: slotConfig.totalSlots,
+                    usedSlots: slotConfig.usedSlots,
+                    remainingSlots: slotConfig.totalSlots - slotConfig.usedSlots
+                };
+                
+                resolve(newStatus);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error updating spell slot status');
+            };
+        });
+    }
+
+    /**
+     * Reset all spell slots of a specific level
+     * @param {number} level - Spell slot level to reset
+     * @returns {Promise} Resolves with new slot status
+     */
+    function resetSpellSlots(level) {
+        return new Promise((resolve, reject) => {
+            if (!db) {
+                reject('Database not initialized');
+                return;
+            }
+            
+            const transaction = db.transaction([SPELL_SLOTS_STORE], 'readwrite');
+            const store = transaction.objectStore(SPELL_SLOTS_STORE);
+            const request = store.get(level);
+            
+            request.onsuccess = () => {
+                let slotConfig = request.result;
+                
+                // If no config exists for this level, create a default one
+                if (!slotConfig) {
+                    const defaultSlots = level <= 9 ? (10 - level) : 0;
+                    slotConfig = {
+                        level: level,
+                        totalSlots: defaultSlots,
+                        usedSlots: 0,
+                        dateModified: new Date()
+                    };
+                } else {
+                    // Reset used slots to 0
+                    slotConfig.usedSlots = 0;
+                    slotConfig.dateModified = new Date();
+                }
+                
+                // Save the updated config
+                store.put(slotConfig);
+                
+                // Return the new status
+                const newStatus = {
+                    totalSlots: slotConfig.totalSlots,
+                    usedSlots: 0,
+                    remainingSlots: slotConfig.totalSlots
+                };
+                
+                resolve(newStatus);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Request error:', event.target.error);
+                reject('Error resetting spell slots');
+            };
+        });
+    }
+
+    /**
+     * Create a default spell slot configuration based on a standard Druid
+     * @returns {Object} Default spell slot configuration
+     */
+    function createDefaultSpellSlotConfig() {
+        return {
+            1: 4, // 4 level 1 slots
+            2: 3, // 3 level 2 slots
+            3: 3, // 3 level 3 slots
+            4: 3, // 3 level 4 slots
+            5: 2, // 2 level 5 slots
+            6: 1, // 1 level 6 slots
+            7: 1, // 1 level 7 slots
+            8: 1, // 1 level 8 slots
+            9: 1  // 1 level 9 slots
+        };
+    }
+    
+    /**
+     * Loads spell data from markdown text
+     * @param {string} markdownText - Markdown text containing spell data
+     * @returns {Promise} Resolves with number of spells loaded
+     */
+    function loadSpellData(markdownText) {
+        return new Promise((resolve, reject) => {
+            try {
+                console.log('Starting spell data parsing from markdown...');
+                console.log(`Markdown text length: ${markdownText.length} characters`);
+                
+                // Parse the markdown text and extract spells
+                const spells = parseSpellMarkdown(markdownText);
+                
+                if (spells.length === 0) {
+                    console.error('No spells found in markdown');
+                    reject('No spells found in markdown');
+                    return;
+                }
+                
+                console.log(`Parsed ${spells.length} spells, first spell: ${spells[0].name}`);
+                
+                // Debug the first few spells
+                spells.slice(0, 3).forEach(spell => {
+                    console.log(`Spell "${spell.name}" (ID: ${spell.id})`);
+                    console.log(`  Level: ${spell.level}, School: ${spell.school}`);
+                    console.log(`  Is Druid Spell: ${spell.isDruidSpell}`);
+                });
+                
+                saveSpells(spells)
+                    .then(count => {
+                        console.log(`Successfully saved ${count} spells to IndexedDB`);
+                        resolve(count);
+                    })
+                    .catch(error => {
+                        console.error('Error saving spells:', error);
+                        reject(error);
+                    });
+            } catch (error) {
+                console.error('Error parsing spell markdown:', error);
+                reject('Error parsing spell markdown: ' + error.message);
+            }
+        });
+    }
+
     // Public API
     return {
         initDatabase,
@@ -1734,6 +2508,23 @@ const DataManager = (function() {
         clearAllData,
         loadBeastData,
         // Bundler-specific methods
-        initializeDatabase
+        initializeDatabase,
+        // Spell Data Management
+        parseSpellMarkdown,
+        saveSpells,
+        loadSpellData,
+        getAllSpells,
+        getSpellById,
+        getFilteredSpells,
+        // Prepared Spells Management
+        togglePreparedSpell,
+        isPreparedSpell,
+        getAllPreparedSpells,
+        // Spell Slots Management
+        getSpellSlotStatus,
+        updateSpellSlotConfig,
+        toggleSpellSlot,
+        resetSpellSlots,
+        createDefaultSpellSlotConfig
     };
 })();
